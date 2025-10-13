@@ -1,0 +1,28 @@
+---
+description: Use Drizzle via packages/data-ops for all D1 database interactions. Backend Cloudflare Worker code must be in Hono and use D1 via data-ops only.
+alwaysApply: false
+---
+
+Database queries are organized in the `packages/data-ops/src/queries/` directory. Each file typically groups related queries together (e.g., user operations, subscription management, etc.).
+
+All queries use the `getDb()` function to access the database instance, ensuring consistent connection management across your serverless functions.
+
+
+architecture.dataLayer.use: drizzle
+architecture.dataLayer.location: packages/data-ops
+architecture.dataLayer.database: D1
+architecture.dataLayer.access: import { getDb } from "@/database/setup";
+architecture.dataLayer.rules:
+  - No raw SQL
+  - All D1 operations must go through data-ops
+
+backend.runtime: cloudflare-worker
+backend.framework: hono
+backend.structure:
+  - /src/hono
+  - /src/workflows
+  - /src/index.ts
+backend.rules:
+  - All database ops via packages/data-ops
+  - Use zod for request validation
+  - Keep routes RESTful, small, and maintainable

@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+codingStyle.comments:
+  - Document complex logic only
+  - Avoid comments for obvious UI or trivial code

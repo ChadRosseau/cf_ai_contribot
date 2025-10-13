@@ -1,0 +1,10 @@
+---
+description: Apply smooth, minimal animations for UI elements, especially onboarding, modals, and dashboard panels.
+alwaysApply: false
+---
+frontend.animations.default: fade-in, scale-in
+frontend.animations.guidelines:
+  - Smooth fade or scale ≤ 300ms
+  - Animate modals, panels, onboarding steps, cards, lists
+  - Avoid bouncing or heavy movement
+frontend.components.animation: Use motion.div from framer-motion

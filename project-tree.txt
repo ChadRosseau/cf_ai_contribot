@@ -1,0 +1,157 @@
+.
+├── LICENSE
+├── README.md
+├── apps
+│   ├── data-service
+│   │   ├── README.md
+│   │   ├── package.json
+│   │   ├── service-bindings.d.ts
+│   │   ├── src
+│   │   │   ├── durable-objects
+│   │   │   │   └── example-durable-object.ts
+│   │   │   ├── hono
+│   │   │   │   └── app.ts
+│   │   │   ├── index.ts
+│   │   │   └── workflows
+│   │   │       └── example-workflow.ts
+│   │   ├── tsconfig.json
+│   │   ├── worker-configuration.d.ts
+│   │   └── wrangler.jsonc
+│   └── user-application
+│       ├── CLAUDE.md
+│       ├── README.md
+│       ├── components.json
+│       ├── package.json
+│       ├── pnpm-lock.yaml
+│       ├── public
+│       │   ├── better-auth.png
+│       │   ├── claude-code-cli.webp
+│       │   ├── cloudflare.png
+│       │   ├── docs
+│       │   │   ├── authentication.md
+│       │   │   ├── database.md
+│       │   │   └── polar.md
+│       │   ├── favicon.ico
+│       │   ├── logo.svg
+│       │   ├── logo192.png
+│       │   ├── logo512.png
+│       │   ├── manifest.json
+│       │   ├── pnpm.webp
+│       │   ├── polar-product-metadata.png
+│       │   ├── polar.png
+│       │   ├── robots.txt
+│       │   ├── shadcn.png
+│       │   └── tanstack.png
+│       ├── src
+│       │   ├── components
+│       │   │   ├── auth
+│       │   │   │   ├── account-dialog.tsx
+│       │   │   │   ├── github-login.tsx
+│       │   │   │   └── google-login.tsx
+│       │   │   ├── default-catch-boundary.tsx
+│       │   │   ├── demo
+│       │   │   │   ├── index.ts
+│       │   │   │   └── middleware-demo.tsx
+│       │   │   ├── landing
+│       │   │   │   ├── claude-code-section.tsx
+│       │   │   │   ├── course-promo-section.tsx
+│       │   │   │   ├── features-section.tsx
+│       │   │   │   ├── footer.tsx
+│       │   │   │   ├── hero-section.tsx
+│       │   │   │   └── index.ts
+│       │   │   ├── layout
+│       │   │   │   ├── header.tsx
+│       │   │   │   └── sidebar.tsx
+│       │   │   ├── navigation
+│       │   │   │   ├── index.ts
+│       │   │   │   └── navigation-bar.tsx
+│       │   │   ├── not-found.tsx
+│       │   │   ├── payments
+│       │   │   │   └── polar
+│       │   │   ├── theme
+│       │   │   │   ├── index.ts
+│       │   │   │   ├── theme-provider.tsx
+│       │   │   │   └── theme-toggle.tsx
+│       │   │   └── ui
+│       │   │       ├── alert.tsx
+│       │   │       ├── avatar.tsx
+│       │   │       ├── badge.tsx
+│       │   │       ├── button.tsx
+│       │   │       ├── card.tsx
+│       │   │       ├── collapsible.tsx
+│       │   │       ├── dialog.tsx
+│       │   │       ├── dropdown-menu.tsx
+│       │   │       ├── input.tsx
+│       │   │       ├── scroll-area.tsx
+│       │   │       └── sheet.tsx
+│       │   ├── core
+│       │   │   ├── functions
+│       │   │   │   ├── example-functions.ts
+│       │   │   │   └── payments.ts
+│       │   │   └── middleware
+│       │   │       ├── auth.ts
+│       │   │       ├── example-middleware.ts
+│       │   │       └── polar.ts
+│       │   ├── integrations
+│       │   │   └── tanstack-query
+│       │   │       ├── devtools.tsx
+│       │   │       └── root-provider.tsx
+│       │   ├── lib
+│       │   │   ├── auth-client.ts
+│       │   │   └── utils.ts
+│       │   ├── logo.svg
+│       │   ├── routeTree.gen.ts
+│       │   ├── router.tsx
+│       │   ├── routes
+│       │   │   ├── __root.tsx
+│       │   │   ├── _auth
+│       │   │   │   ├── app
+│       │   │   │   └── route.tsx
+│       │   │   ├── _static
+│       │   │   │   ├── docs
+│       │   │   │   └── route.tsx
+│       │   │   ├── api
+│       │   │   │   └── auth.$.tsx
+│       │   │   └── index.tsx
+│       │   ├── server.ts
+│       │   ├── start.tsx
+│       │   ├── styles.css
+│       │   └── utils
+│       │       └── seo.ts
+│       ├── tsconfig.json
+│       ├── vite.config.ts
+│       ├── worker-configuration.d.ts
+│       └── wrangler.jsonc
+├── package.json
+├── packages
+│   └── data-ops
+│       ├── config
+│       │   ├── auth.ts
+│       │   └── test.sqlite
+│       ├── drizzle.config.ts
+│       ├── package.json
+│       ├── src
+│       │   ├── auth
+│       │   │   ├── server.ts
+│       │   │   └── setup.ts
+│       │   ├── database
+│       │   │   └── setup.ts
+│       │   ├── drizzle
+│       │   │   ├── 0000_polite_manta.sql
+│       │   │   ├── auth-schema.ts
+│       │   │   ├── meta
+│       │   │   │   ├── 0000_snapshot.json
+│       │   │   │   └── _journal.json
+│       │   │   ├── relations.ts
+│       │   │   └── schema.ts
+│       │   ├── queries
+│       │   │   └── polar.ts
+│       │   └── zod-schema
+│       │       ├── example.ts
+│       │       └── polar.ts
+│       └── tsconfig.json
+├── pnpm-lock.yaml
+├── pnpm-workspace.yaml
+└── project-tree.txt
+
+44 directories, 111 files

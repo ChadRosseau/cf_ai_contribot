@@ -1,0 +1,7 @@
+---
+description: Enforce type-safe HTTP interactions using tanstack-query across frontend and API routes.
+alwaysApply: false
+---
+architecture.communication.frontendToBackend:
+  - All fetch requests to /api routes in apps/user-application/src/routes/api/
+  - Type-safe queries must be done via tanstack-query

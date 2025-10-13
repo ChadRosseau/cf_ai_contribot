@@ -1,0 +1,5 @@
+---
+description: Enforce pnpm as the only package manager for all project tasks.
+alwaysApply: false
+---
+project.packageManager: pnpm

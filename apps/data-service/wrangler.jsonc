@@ -3,13 +3,50 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "saas-kit-data-service",
-  "main": "./src/index.ts",
-  "compatibility_date": "2025-04-01",
-  "compatibility_flags": ["nodejs_compat"],
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "contribot-data-service",
+	"main": "./src/index.ts",
+	"compatibility_date": "2025-04-01",
+	"compatibility_flags": ["nodejs_compat"],
 
-  "observability": {
-    "enabled": true,
-  },
+	"observability": {
+		"enabled": true
+	},
+
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "contribot",
+			"database_id": "6bf3bf79-2dc9-429e-a61e-6110868018c8",
+            "remote": true
+		}
+	],
+
+	"ai": {
+		"binding": "AI",
+        "remote": true
+	},
+
+	"r2_buckets": [
+		{
+			"binding": "WORKFLOW_LOGS",
+			"bucket_name": "contribot-workflow-logs"
+		}
+	],
+
+	"workflows": [
+		{
+			"binding": "SCRAPER_WORKFLOW",
+			"name": "scraper-workflow",
+			"class_name": "ScraperWorkflow"
+		}
+	],
+
+	"vars": {
+        "ENABLE_R2_LOGGING": "true"
+	},
+
+	"triggers": {
+		"crons": ["0 0 * * *"]
+	},
 }

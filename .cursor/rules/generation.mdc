@@ -1,0 +1,14 @@
+---
+description: Ensure AI-generated code is production-grade, type-safe, and follows shadcn + Tailwind conventions.
+alwaysApply: true
+---
+ai.tone: precise, production-grade
+ai.focus:
+  - Generate Drizzle schema and queries correctly
+  - Follow shadcn + Tailwind conventions strictly
+  - Always type-safe
+ai.doNot:
+  - Write raw SQL
+  - Use `any` type
+  - Hardcode colors or break Tailwind theme
+  - Write prototype/example code

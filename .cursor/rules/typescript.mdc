@@ -1,0 +1,10 @@
+---
+description: Enforce TypeScript strict mode, no any types, camelCase for variables/functions, PascalCase for components, snake_case for DB fields.
+alwaysApply: false
+---
+codingStyle.typescript.strict: true
+codingStyle.typescript.noAny: true
+codingStyle.typescript.naming:
+  - camelCase for variables/functions
+  - PascalCase for components
+  - snake_case for database fields

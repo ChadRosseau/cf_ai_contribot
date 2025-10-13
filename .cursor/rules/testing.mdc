@@ -1,0 +1,6 @@
+---
+description: Testing is not needed
+alwaysApply: false
+---
+testing:
+- Not needed

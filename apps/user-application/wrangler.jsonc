@@ -1,10 +1,19 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tanstack-start-app",
-  "compatibility_date": "2025-09-02",
-  "compatibility_flags": ["nodejs_compat"],
-  "main": "./src/server.ts",
-  "vars": {
-    "MY_VAR": "Hello from Cloudflare",
-  },
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "contribot",
+	"compatibility_date": "2025-09-02",
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "./src/server.ts",
+	"vars": {
+		"MY_VAR": "Hello from Cloudflare"
+	},
+
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "contribot",
+			"database_id": "6bf3bf79-2dc9-429e-a61e-6110868018c8",
+			"remote": true
+		}
+	]
 }

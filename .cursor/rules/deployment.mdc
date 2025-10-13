@@ -1,0 +1,9 @@
+---
+description: Deployment rules for Cloudflare Workers + Pages.
+alwaysApply: false
+---
+deployment:
+  - Workers via Wrangler
+  - D1 migrations via drizzle-kit
+  - Frontend deployed to Pages
+  - always use package.json commands, never execute manually using wrangler/drizzle/better-auth CLIs
