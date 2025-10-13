@@ -2,7 +2,7 @@
  * Drizzle queries for repos table
  */
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { repos } from "../drizzle/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
@@ -10,19 +10,21 @@ export interface CreateRepoData {
 	owner: string;
 	name: string;
 	githubUrl: string;
-	languagesOrdered: string[];
-	languagesRaw: Record<string, number>;
+	languagesOrdered: string[] | null;
+	languagesRaw: Record<string, number> | null;
 	goodFirstIssueTag: string;
 	dataSourceId: string;
+	openIssuesCount: number | null;
 	metadataHash: string;
 }
 
 export interface UpdateRepoData {
-	languagesOrdered: string[];
-	languagesRaw: Record<string, number>;
-	goodFirstIssueTag: string;
-	dataSourceId: string;
-	metadataHash: string;
+	languagesOrdered?: string[] | null;
+	languagesRaw?: Record<string, number> | null;
+	goodFirstIssueTag?: string;
+	dataSourceId?: string;
+	openIssuesCount?: number | null;
+	metadataHash?: string;
 }
 
 /**
@@ -70,6 +72,11 @@ export async function createRepo(
 }
 
 /**
+ * Alias for createRepo (for compatibility)
+ */
+export const insertRepo = createRepo;
+
+/**
  * Update an existing repo
  */
 export async function updateRepo(
@@ -104,5 +111,42 @@ export async function getRepoById(db: DrizzleD1Database, id: number) {
 		.limit(1);
 
 	return results[0];
+}
+
+/**
+ * Get repos by processing status, ordered by least recently updated
+ */
+export async function getReposByStatus(
+	db: DrizzleD1Database,
+	status: string,
+	limit: number
+) {
+	return db
+		.select()
+		.from(repos)
+		.where(eq(repos.processingStatus, status))
+		.orderBy(asc(repos.updatedAt))
+		.limit(limit);
+}
+
+/**
+ * Update repo processing status
+ */
+export async function updateRepoProcessingStatus(
+	db: DrizzleD1Database,
+	id: number,
+	status: string,
+	processedAt?: Date
+) {
+	const result = await db
+		.update(repos)
+		.set({
+			processingStatus: status,
+			processedAt: processedAt || null,
+		})
+		.where(eq(repos.id, id))
+		.returning();
+
+	return result[0];
 }
 

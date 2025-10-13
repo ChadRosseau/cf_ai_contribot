@@ -1,10 +1,6 @@
-/**
- * For more details on how to configure Wrangler, refer to:
- * https://developers.cloudflare.com/workers/wrangler/configuration/
- */
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "contribot-data-service",
+	"name": "contribot-scraper-service",
 	"main": "./src/index.ts",
 	"compatibility_date": "2025-04-01",
 	"compatibility_flags": ["nodejs_compat"],
@@ -18,14 +14,9 @@
 			"binding": "DB",
 			"database_name": "contribot",
 			"database_id": "6bf3bf79-2dc9-429e-a61e-6110868018c8",
-            "remote": true
+			"remote": true
 		}
 	],
-
-	"ai": {
-		"binding": "AI",
-        "remote": true
-	},
 
 	"r2_buckets": [
 		{
@@ -40,18 +31,15 @@
 				"binding": "PROCESSING_QUEUE",
 				"queue": "processing-queue"
 			}
-		],
-		"consumers": [
-			{
-				"queue": "processing-queue",
-				"max_batch_size": 10,
-				"max_retries": 3,
-				"dead_letter_queue": "processing-dlq"
-			}
 		]
 	},
 
 	"vars": {
-        "ENABLE_R2_LOGGING": "true"
+		"ENABLE_R2_LOGGING": "true"
+	},
+
+	"triggers": {
+		"crons": ["0 */12 * * *"]
 	}
 }
+

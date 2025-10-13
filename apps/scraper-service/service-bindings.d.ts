@@ -2,13 +2,10 @@ interface Env extends Cloudflare.Env {
   // D1 Database
   DB: D1Database;
   
-  // Workers AI
-  AI: Ai;
-  
-  // R2 Bucket for logs
+  // R2 Bucket for workflow logs
   WORKFLOW_LOGS: R2Bucket;
   
-  // Queue for processing (producer - sends issue processing messages)
+  // Queue for sending processing tasks to data-service
   PROCESSING_QUEUE: Queue<ProcessingQueueMessage>;
   
   // Environment variables
@@ -16,7 +13,8 @@ interface Env extends Cloudflare.Env {
   ENABLE_R2_LOGGING: string;
 }
 
-// Processing queue message types
+// Processing queue message types (sent to data-service)
 type ProcessingQueueMessage =
   | { type: "process_repo"; repoId: number }
   | { type: "process_issue"; issueId: number };
+

@@ -1,5 +1,5 @@
 {
-  "name": "data-service",
+  "name": "scraper-service",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -20,7 +20,7 @@
     "@repo/data-ops": "workspace:*",
     "@repo/r2-logger": "workspace:*",
     "drizzle-orm": "^0.44.5",
-    "hono": "^4.8.3",
-    "zod": "^3.25.67"
+    "hono": "^4.8.3"
   }
 }
+

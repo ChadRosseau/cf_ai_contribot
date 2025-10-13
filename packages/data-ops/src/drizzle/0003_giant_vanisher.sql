@@ -1,0 +1,1 @@
+ALTER TABLE `repos` ADD `open_issues_count` integer;

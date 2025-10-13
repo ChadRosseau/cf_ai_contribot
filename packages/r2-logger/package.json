@@ -1,0 +1,27 @@
+{
+  "name": "@repo/r2-logger",
+  "version": "1.0.0",
+  "description": "R2 logging utilities for Cloudflare Workers",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.14.0",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250823.0",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "@cloudflare/workers-types": "^4"
+  }
+}

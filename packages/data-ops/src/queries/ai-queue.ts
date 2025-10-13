@@ -1,11 +1,17 @@
 /**
- * Drizzle queries for AI summary queue
+ * ⚠️ DEPRECATED - DO NOT USE ⚠️
+ * 
+ * This file is no longer used in the new architecture.
+ * The aiSummaryQueue table has been removed.
+ * Use ai-summaries.ts instead.
+ * 
+ * This file will be deleted after migration is verified.
+ * All functions below are stubs to prevent build errors.
  */
 
-import { eq, and, desc, asc, inArray, sql } from "drizzle-orm";
-import { aiSummaryQueue, aiSummaries } from "../drizzle/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
+// Stub interfaces to prevent errors in old code
 export interface CreateQueueItemData {
 	entityType: "repo" | "issue";
 	entityId: number;
@@ -19,217 +25,73 @@ export interface UpdateQueueItemData {
 	processedAt?: Date | null;
 }
 
-/**
- * Enqueue a repo for AI processing
- */
+// Stub functions - throw deprecation errors
 export async function enqueueRepo(db: DrizzleD1Database, repoId: number) {
-	// Check if already in queue
-	const existing = await findQueueItem(db, "repo", repoId);
-	if (existing) {
-		console.log(`Repo ${repoId} already in queue`);
-		return existing;
-	}
-
-	const result = await db
-		.insert(aiSummaryQueue)
-		.values({
-			entityType: "repo",
-			entityId: repoId,
-			status: "pending",
-			priority: 0,
-			attempts: 0,
-		})
-		.returning();
-
-	return result[0];
+	throw new Error("DEPRECATED: enqueueRepo - use queue messages instead");
 }
 
-/**
- * Enqueue an issue for AI processing
- */
 export async function enqueueIssue(db: DrizzleD1Database, issueId: number) {
-	// Check if already in queue
-	const existing = await findQueueItem(db, "issue", issueId);
-	if (existing) {
-		console.log(`Issue ${issueId} already in queue`);
-		return existing;
-	}
-
-	const result = await db
-		.insert(aiSummaryQueue)
-		.values({
-			entityType: "issue",
-			entityId: issueId,
-			status: "pending",
-			priority: 0,
-			attempts: 0,
-		})
-		.returning();
-
-	return result[0];
+	throw new Error("DEPRECATED: enqueueIssue - use queue messages instead");
 }
 
-/**
- * Find a queue item by entity type and ID
- */
+export async function enqueueForAISummary(
+	db: DrizzleD1Database,
+	data: CreateQueueItemData
+) {
+	throw new Error("DEPRECATED: enqueueForAISummary - use queue messages instead");
+}
+
 export async function findQueueItem(
 	db: DrizzleD1Database,
-	entityType: "repo" | "issue",
+	entityType: string,
 	entityId: number
 ) {
-	const results = await db
-		.select()
-		.from(aiSummaryQueue)
-		.where(
-			and(
-				eq(aiSummaryQueue.entityType, entityType),
-				eq(aiSummaryQueue.entityId, entityId)
-			)
-		)
-		.limit(1);
-
-	return results[0];
+	throw new Error("DEPRECATED: findQueueItem - no longer used");
 }
 
-/**
- * Get pending queue items (batch)
- */
 export async function getPendingQueueItems(
 	db: DrizzleD1Database,
-	limit = 10
+	limit: number = 10
 ) {
-	return db
-		.select()
-		.from(aiSummaryQueue)
-		.where(eq(aiSummaryQueue.status, "pending"))
-		.orderBy(desc(aiSummaryQueue.priority), asc(aiSummaryQueue.createdAt))
-		.limit(limit);
+	throw new Error("DEPRECATED: getPendingQueueItems - no longer used");
 }
 
-/**
- * Mark queue item as processing
- */
 export async function markQueueItemProcessing(
 	db: DrizzleD1Database,
 	id: number
 ) {
-	const result = await db
-		.update(aiSummaryQueue)
-		.set({
-			status: "processing",
-		})
-		.where(eq(aiSummaryQueue.id, id))
-		.returning();
-
-	return result[0];
+	throw new Error("DEPRECATED: markQueueItemProcessing - no longer used");
 }
 
-/**
- * Mark queue item as completed
- */
 export async function completeQueueItem(db: DrizzleD1Database, id: number) {
-	const result = await db
-		.update(aiSummaryQueue)
-		.set({
-			status: "completed",
-			processedAt: new Date(),
-		})
-		.where(eq(aiSummaryQueue.id, id))
-		.returning();
-
-	return result[0];
+	throw new Error("DEPRECATED: completeQueueItem - no longer used");
 }
 
-/**
- * Mark queue item as failed
- */
 export async function failQueueItem(
 	db: DrizzleD1Database,
 	id: number,
 	errorMessage: string,
 	attempts: number
 ) {
-	const maxAttempts = 3;
-	const status = attempts >= maxAttempts ? "failed" : "pending";
-
-	const result = await db
-		.update(aiSummaryQueue)
-		.set({
-			status,
-			attempts,
-			errorMessage,
-			processedAt: attempts >= maxAttempts ? new Date() : null,
-		})
-		.where(eq(aiSummaryQueue.id, id))
-		.returning();
-
-	return result[0];
+	throw new Error("DEPRECATED: failQueueItem - no longer used");
 }
 
-/**
- * Get queue statistics
- */
+export async function resetStuckItems(db: DrizzleD1Database, timeoutMs: number) {
+	throw new Error("DEPRECATED: resetStuckItems - no longer used");
+}
+
 export async function getQueueStats(db: DrizzleD1Database) {
-	const stats = await db
-		.select({
-			status: aiSummaryQueue.status,
-			count: sql<number>`count(*)`,
-		})
-		.from(aiSummaryQueue)
-		.groupBy(aiSummaryQueue.status);
-
-	return stats;
+	throw new Error("DEPRECATED: getQueueStats - no longer used");
 }
 
-/**
- * Store AI summary for a repo
- */
 export async function storeRepoSummary(
 	db: DrizzleD1Database,
 	repoId: number,
 	summary: string
 ) {
-	// Check if summary exists
-	const existing = await db
-		.select()
-		.from(aiSummaries)
-		.where(
-			and(
-				eq(aiSummaries.entityType, "repo"),
-				eq(aiSummaries.entityId, repoId)
-			)
-		)
-		.limit(1);
-
-	if (existing.length > 0) {
-		// Update existing
-		const result = await db
-			.update(aiSummaries)
-			.set({
-				repoSummary: summary,
-			})
-			.where(eq(aiSummaries.id, existing[0].id))
-			.returning();
-
-		return result[0];
-	} else {
-		// Insert new
-		const result = await db
-			.insert(aiSummaries)
-			.values({
-				entityType: "repo",
-				entityId: repoId,
-				repoSummary: summary,
-			})
-			.returning();
-
-		return result[0];
-	}
+	throw new Error("DEPRECATED: storeRepoSummary - use ai-summaries.ts instead");
 }
 
-/**
- * Store AI summary for an issue
- */
 export async function storeIssueSummary(
 	db: DrizzleD1Database,
 	issueId: number,
@@ -239,39 +101,5 @@ export async function storeIssueSummary(
 		firstSteps: string;
 	}
 ) {
-	// Check if summary exists
-	const existing = await db
-		.select()
-		.from(aiSummaries)
-		.where(
-			and(
-				eq(aiSummaries.entityType, "issue"),
-				eq(aiSummaries.entityId, issueId)
-			)
-		)
-		.limit(1);
-
-	if (existing.length > 0) {
-		// Update existing
-		const result = await db
-			.update(aiSummaries)
-			.set(data)
-			.where(eq(aiSummaries.id, existing[0].id))
-			.returning();
-
-		return result[0];
-	} else {
-		// Insert new
-		const result = await db
-			.insert(aiSummaries)
-			.values({
-				entityType: "issue",
-				entityId: issueId,
-				...data,
-			})
-			.returning();
-
-		return result[0];
-	}
+	throw new Error("DEPRECATED: storeIssueSummary - use ai-summaries.ts instead");
 }
-

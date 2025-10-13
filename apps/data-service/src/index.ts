@@ -1,73 +1,93 @@
-import { WorkerEntrypoint } from "cloudflare:workers";
-import { app } from "@/hono/app";
-import { ScraperWorkflow } from "@/workflows/scraper-workflow";
+/**
+ * Data Service - Queue Consumer Entry Point
+ * Processes repos and issues by fetching data and generating AI summaries
+ */
 
-// Export the workflow for Cloudflare to register it
-export { ScraperWorkflow };
+import { R2Logger, WorkflowLogger } from "@repo/r2-logger";
+import { initDatabase } from "@repo/data-ops/database/setup";
+import { GitHubApiClient } from "./utils/github-api";
+import { AiSummarizer } from "./ai/summarizer";
+import { RepoProcessor } from "./processor/repo-processor";
+import { IssueProcessor } from "./processor/issue-processor";
 
-// Main worker class
-export default class DataService extends WorkerEntrypoint<Env> {
-  async fetch(request: Request) {
-    // Handle the special scheduled trigger endpoint for testing
-    const url = new URL(request.url);
-    
-    if (url.pathname === "/cdn-cgi/handler/scheduled" && request.method === "GET") {
-      console.log("Manual scheduled trigger received");
-      
-      // Create a mock controller for testing
-      const controller = {
-        scheduledTime: Date.now(),
-        cron: "manual-trigger",
-      } as ScheduledController;
-      
-      // Call the scheduled handler
-      await this.scheduled(controller, this.env, this.ctx);
-      
-      return new Response(JSON.stringify({
-        success: true,
-        message: "Scheduled handler triggered",
-        time: new Date().toISOString(),
-      }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    
-    // Pass all other requests to Hono
-    return app.fetch(request, this.env, this.ctx);
-  }
+// Queue consumer handler
+const queue: ExportedHandlerQueueHandler<Env, ProcessingQueueMessage> = async (
+	batch,
+	env,
+	ctx
+) => {
+	console.log("=== Queue Consumer: Data Service ===");
+	console.log(`Processing batch of ${batch.messages.length} messages`);
 
-  async scheduled(
-    controller: ScheduledController,
-    env: Env,
-    ctx: ExecutionContext
-  ): Promise<void> {
-    console.log("=== Cron triggered ===");
-    console.log("Time:", new Date().toISOString());
-    console.log("Cron pattern:", controller.cron);
-    
-    try {
-      // Check if workflow binding is available
-      if (!env.SCRAPER_WORKFLOW) {
-        console.error("❌ SCRAPER_WORKFLOW binding not available");
-        console.error("Make sure you're running with: wrangler dev --remote");
-        console.error("Or the workflow is properly configured in wrangler.jsonc");
-        return;
-      }
+	// Initialize R2 logging
+	const loggingEnabled = env.ENABLE_R2_LOGGING === "true";
+	const batchId = `batch-${Date.now()}`;
+	const r2Logger = new R2Logger(
+		env.WORKFLOW_LOGS,
+		loggingEnabled,
+		batchId,
+		"data-service"
+	);
+	const logger = new WorkflowLogger(r2Logger);
 
-      console.log("Starting scraper workflow...");
-      const instance = await env.SCRAPER_WORKFLOW.create({
-        params: {
-          triggeredAt: new Date().toISOString(),
-        },
-      });
-      
-      console.log(`✓ Workflow instance created: ${instance.id}`);
-    } catch (error) {
-      console.error("❌ Failed to start workflow:", error);
-      if (error instanceof Error) {
-        console.error("Error details:", error.message);
-        console.error("Stack:", error.stack);
-      }
-    }
-  }
-}
+	logger.startCapture();
+
+	// Initialize shared services
+	const db = initDatabase(env.DB);
+	const githubClient = new GitHubApiClient(env.GITHUB_SCRAPER_TOKEN);
+	const aiSummarizer = new AiSummarizer(env.AI);
+	const repoProcessor = new RepoProcessor(db as any, githubClient, aiSummarizer, env.PROCESSING_QUEUE);
+	const issueProcessor = new IssueProcessor(db as any, githubClient, aiSummarizer);
+
+	for (const message of batch.messages) {
+		try {
+			const msg = message.body;
+
+			if (msg.type === "process_repo") {
+				console.log(`\nProcessing repo #${msg.repoId}...`);
+				const stats = await repoProcessor.processRepo(msg.repoId);
+				console.log(`✓ Repo processing stats:`, stats);
+				message.ack();
+			} else if (msg.type === "process_issue") {
+				console.log(`\nProcessing issue #${msg.issueId}...`);
+				const stats = await issueProcessor.processIssue(msg.issueId);
+				console.log(`✓ Issue processing stats:`, stats);
+				message.ack();
+			} else {
+				console.warn(`Unknown message type: ${(msg as any).type}`);
+				message.ack();
+			}
+		} catch (error) {
+			console.error("❌ Failed to process message:", error);
+
+			// Check for subrequest limit - terminate and retry
+			if (
+				error instanceof Error &&
+				(error.message.includes("too many subrequests") ||
+				 error.message.includes("Too many subrequests") ||
+				 error.message.includes("Failed query"))
+			) {
+				console.log("⚠️ Hit subrequest limit - terminating and retrying message in new invocation");
+				logger.stopCapture();
+				await logger.flush();
+				message.retry();
+				// Terminate processing this batch
+				return;
+			}
+
+			// Other errors - log and ack to prevent infinite retries
+			console.error("❌ Non-retriable error, acking message");
+			message.ack();
+		}
+	}
+
+	// Flush logs
+	logger.stopCapture();
+	await logger.flush();
+
+	console.log("✓ Batch processing complete");
+};
+
+export default {
+	queue,
+};

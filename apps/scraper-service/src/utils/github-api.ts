@@ -1,6 +1,6 @@
 /**
- * GitHub API client with rate limiting
- * Ensures we stay under 5000 requests/hour limit
+ * GitHub API client for scraper-service
+ * Fetches repo metadata and issue lists (not full details)
  */
 
 interface RateLimitState {
@@ -9,11 +9,41 @@ interface RateLimitState {
 	lastRequestTime: number;
 }
 
+export interface GitHubRepoMetadata {
+	id: number;
+	name: string;
+	full_name: string;
+	owner: {
+		login: string;
+	};
+	open_issues_count: number;
+	stargazers_count: number;
+	forks_count: number;
+	created_at: string;
+	updated_at: string;
+	pushed_at: string;
+}
+
+export interface GitHubIssueLabelCount {
+	openCount: number;
+}
+
+interface GraphQLResponse {
+	data?: {
+		repository?: {
+			issues: {
+				totalCount: number;
+			};
+		};
+	};
+	errors?: Array<{ message: string }>;
+}
+
 export class GitHubApiClient {
 	private token: string;
 	private rateLimitState: RateLimitState;
 	private readonly MAX_REQUESTS_PER_HOUR = 5000;
-	private readonly MIN_DELAY_MS = 2000; // Minimum 2 seconds between requests (30 req/min max)
+	private readonly MIN_DELAY_MS = 2000; // 2 seconds between requests (30 req/min)
 
 	constructor(token: string) {
 		this.token = token;
@@ -24,23 +54,16 @@ export class GitHubApiClient {
 		};
 	}
 
-	/**
-	 * Check and update rate limit state
-	 * Returns milliseconds to wait before next request
-	 */
 	private checkRateLimit(): number {
 		const now = Date.now();
 		const hourElapsed = now - this.rateLimitState.hourStartTime;
 
-		// Reset counter if hour has passed
 		if (hourElapsed >= 3600000) {
 			this.rateLimitState.requestsThisHour = 0;
 			this.rateLimitState.hourStartTime = now;
 		}
 
-		// Check if we're approaching the limit
 		if (this.rateLimitState.requestsThisHour >= this.MAX_REQUESTS_PER_HOUR - 100) {
-			// Wait until next hour
 			const timeUntilNextHour = 3600000 - hourElapsed;
 			console.warn(
 				`Rate limit approaching. Waiting ${timeUntilNextHour}ms until next hour`
@@ -48,7 +71,6 @@ export class GitHubApiClient {
 			return timeUntilNextHour;
 		}
 
-		// Calculate minimum delay since last request
 		const timeSinceLastRequest = now - this.rateLimitState.lastRequestTime;
 		if (timeSinceLastRequest < this.MIN_DELAY_MS) {
 			return this.MIN_DELAY_MS - timeSinceLastRequest;
@@ -57,24 +79,15 @@ export class GitHubApiClient {
 		return 0;
 	}
 
-	/**
-	 * Make a rate-limited request to GitHub API
-	 */
-	private async request<T>(
-		endpoint: string,
-		retries = 3
-	): Promise<T> {
-		// Check rate limit and wait if necessary
+	private async request<T>(endpoint: string, retries = 3): Promise<T> {
 		const delayMs = this.checkRateLimit();
 		if (delayMs > 0) {
 			await new Promise((resolve) => setTimeout(resolve, delayMs));
 		}
 
-		// Update rate limit state
 		this.rateLimitState.requestsThisHour++;
 		this.rateLimitState.lastRequestTime = Date.now();
 
-		// Debug logging (hide most of token)
 		console.log(`GitHub API Request: GET https://api.github.com${endpoint}`);
 
 		try {
@@ -87,28 +100,12 @@ export class GitHubApiClient {
 				},
 			});
 
-			// Check rate limit headers from response
-			const remaining = response.headers.get("X-RateLimit-Remaining");
-			if (remaining && parseInt(remaining) < 100) {
-				console.warn(`GitHub API rate limit low: ${remaining} remaining`);
+			if (response.headers.has("x-ratelimit-remaining")) {
+				const remaining = parseInt(response.headers.get("x-ratelimit-remaining") || "0");
+				console.log(`GitHub rate limit remaining: ${remaining}`);
 			}
 
-			// Handle rate limit exceeded
-			if (response.status === 429) {
-				const retryAfter = response.headers.get("Retry-After");
-				const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 60000;
-				console.warn(`Rate limit exceeded. Waiting ${waitTime}ms`);
-				await new Promise((resolve) => setTimeout(resolve, waitTime));
-				
-				if (retries > 0) {
-					return this.request<T>(endpoint, retries - 1);
-				}
-				throw new Error("Rate limit exceeded after retries");
-			}
-
-			// Handle other errors
 			if (!response.ok) {
-				// Log detailed error information
 				const errorBody = await response.text();
 				console.error(`GitHub API Error Response (${response.status}):`, errorBody);
 				
@@ -127,7 +124,6 @@ export class GitHubApiClient {
 
 			return await response.json();
 		} catch (error) {
-			// Retry on network errors
 			if (retries > 0 && error instanceof TypeError) {
 				console.warn(`Network error, retrying... (${retries} attempts left)`);
 				await new Promise((resolve) => setTimeout(resolve, 1000 * (4 - retries)));
@@ -138,83 +134,82 @@ export class GitHubApiClient {
 	}
 
 	/**
-	 * Fetch repository languages from GitHub
-	 * Returns both raw object and ordered array
+	 * Fetch repository metadata
 	 */
-	async fetchRepoLanguages(
-		owner: string,
-		name: string
-	): Promise<{
-		raw: Record<string, number>;
-		ordered: string[];
-	}> {
-		try {
-			const languages = await this.request<Record<string, number>>(
-				`/repos/${owner}/${name}/languages`
-			);
+	async fetchRepoMetadata(owner: string, name: string): Promise<GitHubRepoMetadata> {
+		return this.request<GitHubRepoMetadata>(`/repos/${owner}/${name}`);
+	}
 
-			// Sort languages by bytes (descending) and extract names
-			const ordered = Object.entries(languages)
-				.sort(([, a], [, b]) => b - a)
-				.map(([lang]) => lang);
+	/**
+	 * Fetch open issue count for a specific label using GraphQL
+	 */
+	async fetchIssueLabelCount(
+		owner: string,
+		name: string,
+		label: string
+	): Promise<GitHubIssueLabelCount> {
+		const query = {
+			query: `query {
+				repository(owner: "${owner}", name: "${name}") {
+					issues(labels: ["${label}"], states: OPEN) {
+						totalCount
+					}
+				}
+			}`,
+		};
+
+		// Wait for rate limit
+		const delay = this.checkRateLimit();
+		if (delay > 0) {
+			await new Promise((resolve) => setTimeout(resolve, delay));
+		}
+
+		this.rateLimitState.requestsThisHour++;
+		this.rateLimitState.lastRequestTime = Date.now();
+
+		console.log(
+			`GitHub GraphQL Request: repository(owner: "${owner}", name: "${name}") label: "${label}"`
+		);
+
+		try {
+			const response = await fetch("https://api.github.com/graphql", {
+				method: "POST",
+				headers: {
+					Authorization: `bearer ${this.token}`,
+					"Content-Type": "application/json",
+					"User-Agent": "Contribot-Scraper/2.0",
+				},
+				body: JSON.stringify(query),
+			});
+
+			if (!response.ok) {
+				const errorBody = await response.text();
+				console.error(`GitHub GraphQL Error (${response.status}):`, errorBody);
+				throw new Error(`GitHub GraphQL error: ${response.status} ${response.statusText}`);
+			}
+
+			const result = (await response.json()) as GraphQLResponse;
+
+			if (result.errors) {
+				console.error("GraphQL errors:", result.errors);
+				throw new Error(`GraphQL query failed: ${JSON.stringify(result.errors)}`);
+			}
+
+			if (!result.data?.repository) {
+				throw new Error(`Repository not found or inaccessible: ${owner}/${name}`);
+			}
 
 			return {
-				raw: languages,
-				ordered,
+				openCount: result.data.repository.issues.totalCount,
 			};
 		} catch (error) {
-			console.error(`Failed to fetch languages for ${owner}/${name}:`, error);
-			// Return empty on error
-			return {
-				raw: {},
-				ordered: [],
-			};
+			console.error(`Failed to fetch issue count for ${owner}/${name}:`, error);
+			throw error;
 		}
 	}
 
 	/**
-	 * Fetch a single issue by number
-	 */
-	async fetchIssue(
-		owner: string,
-		name: string,
-		issueNumber: number
-	): Promise<GitHubIssue> {
-		return this.request<GitHubIssue>(
-			`/repos/${owner}/${name}/issues/${issueNumber}`
-		);
-	}
-
-	/**
-	 * Batch fetch multiple issues to check their status
-	 * Returns a map of issue number to issue data
-	 */
-	async batchFetchIssues(
-		owner: string,
-		name: string,
-		issueNumbers: number[]
-	): Promise<Map<number, GitHubIssue>> {
-		const issueMap = new Map<number, GitHubIssue>();
-
-		console.log(`Batch fetching ${issueNumbers.length} issues to verify status...`);
-
-		// Fetch issues one by one (GitHub API doesn't have a batch endpoint for this)
-		// But we can do this efficiently with proper rate limiting
-		for (const issueNumber of issueNumbers) {
-			try {
-				const issue = await this.fetchIssue(owner, name, issueNumber);
-				issueMap.set(issueNumber, issue);
-			} catch (error) {
-				console.error(`  Failed to fetch issue #${issueNumber}:`, error);
-				// Continue with other issues
-			}
-		}
-
-		return issueMap;
-	}
-
-	/**
-	 * Fetch issues with a specific label from a repository
+	 * Fetch issues metadata (not full bodies)
 	 */
 	async fetchIssues(
 		owner: string,
@@ -234,12 +229,18 @@ export class GitHubApiClient {
 			return issues;
 		} catch (error) {
 			console.error(`Failed to fetch issues for ${owner}/${name}:`, error);
+			
+			// Check for subrequest limit
+			if (error instanceof Error && error.message.includes("too many subrequests")) {
+				throw error; // Propagate to trigger continuation
+			}
+			
 			return [];
 		}
 	}
 
 	/**
-	 * Fetch all issues with pagination
+	 * Fetch all issues metadata with pagination (up to 10,000 issues)
 	 */
 	async fetchAllIssues(
 		owner: string,
@@ -273,9 +274,6 @@ export class GitHubApiClient {
 		return allIssues;
 	}
 
-	/**
-	 * Get current rate limit stats
-	 */
 	getRateLimitStats() {
 		return {
 			made: this.rateLimitState.requestsThisHour,
@@ -297,6 +295,6 @@ export interface GitHubIssue {
 	created_at: string;
 	updated_at: string;
 	html_url: string;
-	pull_request?: unknown; // Issues with this field are actually PRs
+	pull_request?: unknown;
 }
 
