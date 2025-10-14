@@ -49,8 +49,6 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 		console.log("Triggered at:", event.payload.triggeredAt);
 		console.log("Workflow ID:", runId);
 		console.log("R2 Logging:", loggingEnabled ? "enabled" : "disabled");
-		console.log("GithubAPIClient", this.env.GITHUB_SCRAPER_TOKEN);
-		console.log("CloudflareID", this.env.CLOUDFLARE_ACCOUNT_ID);
 
 		const db = initDatabase(this.env.DB);
 		const githubClient = new GitHubApiClient(this.env.GITHUB_SCRAPER_TOKEN);

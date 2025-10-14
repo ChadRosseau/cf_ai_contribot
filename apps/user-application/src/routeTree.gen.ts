@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StaticRouteRouteImport } from './routes/_static/route'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthOnboardingRouteImport } from './routes/_auth/onboarding'
 import { Route as StaticDocsIndexRouteImport } from './routes/_static/docs/index'
 import { Route as AuthAppIndexRouteImport } from './routes/_auth/app/index'
+import { Route as ApiUserPreferencesRouteImport } from './routes/api/user.preferences'
+import { Route as ApiIssuesRecommendedRouteImport } from './routes/api/issues.recommended'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
+import { Route as ApiAgentSplatRouteImport } from './routes/api/agent.$'
 import { Route as StaticDocsNameRouteImport } from './routes/_static/docs/$name'
 import { Route as AuthAppPolarSubscriptionsRouteImport } from './routes/_auth/app/polar/subscriptions'
 import { Route as AuthAppPolarPortalRouteImport } from './routes/_auth/app/polar/portal'
@@ -33,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthOnboardingRoute = AuthOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const StaticDocsIndexRoute = StaticDocsIndexRouteImport.update({
   id: '/docs/',
   path: '/docs/',
@@ -43,9 +52,24 @@ const AuthAppIndexRoute = AuthAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const ApiUserPreferencesRoute = ApiUserPreferencesRouteImport.update({
+  id: '/api/user/preferences',
+  path: '/api/user/preferences',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIssuesRecommendedRoute = ApiIssuesRecommendedRouteImport.update({
+  id: '/api/issues/recommended',
+  path: '/api/issues/recommended',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAgentSplatRoute = ApiAgentSplatRouteImport.update({
+  id: '/api/agent/$',
+  path: '/api/agent/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaticDocsNameRoute = StaticDocsNameRouteImport.update({
@@ -73,8 +97,12 @@ const AuthAppPolarCheckoutSuccessRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/onboarding': typeof AuthOnboardingRoute
   '/docs/$name': typeof StaticDocsNameRoute
+  '/api/agent/$': typeof ApiAgentSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/issues/recommended': typeof ApiIssuesRecommendedRoute
+  '/api/user/preferences': typeof ApiUserPreferencesRoute
   '/app': typeof AuthAppIndexRoute
   '/docs': typeof StaticDocsIndexRoute
   '/app/polar/portal': typeof AuthAppPolarPortalRoute
@@ -83,8 +111,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/onboarding': typeof AuthOnboardingRoute
   '/docs/$name': typeof StaticDocsNameRoute
+  '/api/agent/$': typeof ApiAgentSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/issues/recommended': typeof ApiIssuesRecommendedRoute
+  '/api/user/preferences': typeof ApiUserPreferencesRoute
   '/app': typeof AuthAppIndexRoute
   '/docs': typeof StaticDocsIndexRoute
   '/app/polar/portal': typeof AuthAppPolarPortalRoute
@@ -96,8 +128,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_static': typeof StaticRouteRouteWithChildren
+  '/_auth/onboarding': typeof AuthOnboardingRoute
   '/_static/docs/$name': typeof StaticDocsNameRoute
+  '/api/agent/$': typeof ApiAgentSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/issues/recommended': typeof ApiIssuesRecommendedRoute
+  '/api/user/preferences': typeof ApiUserPreferencesRoute
   '/_auth/app/': typeof AuthAppIndexRoute
   '/_static/docs/': typeof StaticDocsIndexRoute
   '/_auth/app/polar/portal': typeof AuthAppPolarPortalRoute
@@ -108,8 +144,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/onboarding'
     | '/docs/$name'
+    | '/api/agent/$'
     | '/api/auth/$'
+    | '/api/issues/recommended'
+    | '/api/user/preferences'
     | '/app'
     | '/docs'
     | '/app/polar/portal'
@@ -118,8 +158,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/onboarding'
     | '/docs/$name'
+    | '/api/agent/$'
     | '/api/auth/$'
+    | '/api/issues/recommended'
+    | '/api/user/preferences'
     | '/app'
     | '/docs'
     | '/app/polar/portal'
@@ -130,8 +174,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_auth'
     | '/_static'
+    | '/_auth/onboarding'
     | '/_static/docs/$name'
+    | '/api/agent/$'
     | '/api/auth/$'
+    | '/api/issues/recommended'
+    | '/api/user/preferences'
     | '/_auth/app/'
     | '/_static/docs/'
     | '/_auth/app/polar/portal'
@@ -143,7 +191,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   StaticRouteRoute: typeof StaticRouteRouteWithChildren
+  ApiAgentSplatRoute: typeof ApiAgentSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiIssuesRecommendedRoute: typeof ApiIssuesRecommendedRoute
+  ApiUserPreferencesRoute: typeof ApiUserPreferencesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -169,6 +220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/onboarding': {
+      id: '/_auth/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthOnboardingRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_static/docs/': {
       id: '/_static/docs/'
       path: '/docs'
@@ -183,11 +241,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAppIndexRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/api/user/preferences': {
+      id: '/api/user/preferences'
+      path: '/api/user/preferences'
+      fullPath: '/api/user/preferences'
+      preLoaderRoute: typeof ApiUserPreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/issues/recommended': {
+      id: '/api/issues/recommended'
+      path: '/api/issues/recommended'
+      fullPath: '/api/issues/recommended'
+      preLoaderRoute: typeof ApiIssuesRecommendedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/agent/$': {
+      id: '/api/agent/$'
+      path: '/api/agent/$'
+      fullPath: '/api/agent/$'
+      preLoaderRoute: typeof ApiAgentSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_static/docs/$name': {
@@ -222,6 +301,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteRouteChildren {
+  AuthOnboardingRoute: typeof AuthOnboardingRoute
   AuthAppIndexRoute: typeof AuthAppIndexRoute
   AuthAppPolarPortalRoute: typeof AuthAppPolarPortalRoute
   AuthAppPolarSubscriptionsRoute: typeof AuthAppPolarSubscriptionsRoute
@@ -229,6 +309,7 @@ interface AuthRouteRouteChildren {
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthOnboardingRoute: AuthOnboardingRoute,
   AuthAppIndexRoute: AuthAppIndexRoute,
   AuthAppPolarPortalRoute: AuthAppPolarPortalRoute,
   AuthAppPolarSubscriptionsRoute: AuthAppPolarSubscriptionsRoute,
@@ -257,7 +338,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   StaticRouteRoute: StaticRouteRouteWithChildren,
+  ApiAgentSplatRoute: ApiAgentSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiIssuesRecommendedRoute: ApiIssuesRecommendedRoute,
+  ApiUserPreferencesRoute: ApiUserPreferencesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

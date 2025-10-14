@@ -30,7 +30,8 @@
 	"r2_buckets": [
 		{
 			"binding": "WORKFLOW_LOGS",
-			"bucket_name": "contribot-workflow-logs"
+			"bucket_name": "contribot-workflow-logs",
+            "preview_bucket_name": "contribot-workflow-logs-preview"
 		}
 	],
 

@@ -2,8 +2,8 @@
  * Drizzle queries for issues table
  */
 
-import { eq, and, asc } from "drizzle-orm";
-import { issues } from "../drizzle/schema";
+import { eq, and, asc, desc, sql, like, or, between, isNull } from "drizzle-orm";
+import { issues, repos, aiSummaries } from "../drizzle/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 export interface CreateIssueData {
@@ -199,5 +199,91 @@ export async function updateIssueProcessingStatus(
 		.returning();
 
 	return result[0];
+}
+
+export interface RecommendedIssue {
+	id: number;
+	issueNumber: number;
+	title: string;
+	url: string;
+	state: string;
+	owner: string;
+	repoName: string;
+	languages: string[];
+	intro: string;
+	difficulty: number;
+	firstSteps: string;
+}
+
+/**
+ * Get recommended issues based on user preferences
+ */
+export async function getRecommendedIssues(
+	db: DrizzleD1Database,
+	preferredLanguages: string[],
+	difficultyPreference: number,
+	limit: number = 20
+): Promise<RecommendedIssue[]> {
+	try {
+		const difficultyRange = { min: difficultyPreference - 1, max: difficultyPreference + 1 };
+
+		// Build language filter conditions
+		const languageConditions = preferredLanguages.length > 0
+			? or(...preferredLanguages.map(lang => like(repos.languagesOrdered, `%${lang}%`)))
+			: sql`1=1`;
+
+		const result = await db
+			.select({
+				id: issues.id,
+				issueNumber: issues.githubIssueNumber,
+				title: issues.title,
+				url: issues.githubUrl,
+				state: issues.state,
+				owner: repos.owner,
+				repoName: repos.name,
+				languages: repos.languagesOrdered,
+				intro: aiSummaries.issueIntro,
+				difficulty: aiSummaries.difficultyScore,
+				firstSteps: aiSummaries.firstSteps,
+			})
+			.from(issues)
+			.innerJoin(repos, eq(issues.repoId, repos.id))
+			.leftJoin(
+				aiSummaries,
+				and(
+					eq(aiSummaries.entityType, "issue"),
+					eq(aiSummaries.entityId, issues.id)
+				)
+			)
+			.where(
+				and(
+					eq(issues.state, "open"),
+					languageConditions,
+					or(
+						between(aiSummaries.difficultyScore, difficultyRange.min, difficultyRange.max),
+						isNull(aiSummaries.difficultyScore)
+					)
+				)
+			)
+			.orderBy(desc(issues.updatedAt))
+			.limit(limit);
+
+		return result.map((row) => ({
+			id: row.id,
+			issueNumber: row.issueNumber,
+			title: row.title,
+			url: row.url,
+			state: row.state,
+			owner: row.owner,
+			repoName: row.repoName,
+			languages: row.languages || [],
+			intro: row.intro || "No summary available",
+			difficulty: row.difficulty || 3,
+			firstSteps: row.firstSteps || "Review the issue and get started",
+		}));
+	} catch (error) {
+		console.error("Failed to get recommended issues:", error);
+		throw error;
+	}
 }
 

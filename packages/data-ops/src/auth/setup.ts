@@ -11,7 +11,12 @@ export const createBetterAuth = (config: {
     emailAndPassword: {
       enabled: false,
     },
-    socialProviders: config.socialProviders,
+    socialProviders: config.socialProviders ? {
+      ...config.socialProviders,
+      github: config.socialProviders.github ? {
+        ...config.socialProviders.github,
+      } : undefined,
+    } : undefined,
     user: {
       modelName: "auth_user",
     },

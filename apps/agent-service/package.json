@@ -1,5 +1,5 @@
 {
-  "name": "scraper-service",
+  "name": "agent-service",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -17,11 +17,9 @@
     "wrangler": "^4.24.3"
   },
   "dependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
     "@repo/data-ops": "workspace:*",
-    "@repo/r2-logger": "workspace:*",
-    "drizzle-orm": "^0.44.5",
-    "hono": "^4.8.3",
-    "zod": "^3.25.67"
+    "agents": "^0.2.13",
+    "hono": "^4.8.3"
   }
 }
-

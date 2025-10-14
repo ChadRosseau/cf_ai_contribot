@@ -77,22 +77,19 @@ export class RepoProcessor {
 		// 2. Fetch languages from GitHub
 		console.log("Fetching languages from GitHub...");
 		try {
-			const languagesRaw = await this.githubClient.fetchRepoLanguages(
+			const languages = await this.githubClient.fetchRepoLanguages(
 				repo.owner,
 				repo.name
 			);
-			const languagesOrdered = Object.entries(languagesRaw)
-				.sort((a, b) => b[1] - a[1])
-				.map(([lang]) => lang);
 
 			// Update repo with languages
 			await updateRepo(this.db as any, repoId, {
-				languagesOrdered,
-				languagesRaw,
+				languagesOrdered: languages.ordered,
+				languagesRaw: languages.raw,
 			});
 			
 			stats.languagesFetched = true;
-			console.log(`✓ Fetched languages: ${languagesOrdered.join(", ")}`);
+			console.log(`✓ Fetched languages: ${languages.ordered.join(", ")}`);
 		} catch (error) {
 			console.error(`❌ [Repo ID ${repoId}] Failed to fetch languages:`, error);
 			throw error; // Will retry

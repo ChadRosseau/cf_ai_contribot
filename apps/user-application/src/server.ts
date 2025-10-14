@@ -15,6 +15,7 @@ export default {
 				github: {
 					clientId: env.GITHUB_CLIENT_ID,
 					clientSecret: env.GITHUB_CLIENT_SECRET,
+                    scope: ["read:user", "user:email", "public_repo"]
 				},
 			},
 			adapter: {
@@ -22,9 +23,11 @@ export default {
 				provider: "sqlite",
 			},
 		});
+        (globalThis as any).AGENT_SERVICE = env.AGENT_SERVICE;
 		return handler.fetch(request, {
 			context: {
 				fromFetch: true,
+				AGENT_SERVICE: env.AGENT_SERVICE,
 			},
 		});
 	},

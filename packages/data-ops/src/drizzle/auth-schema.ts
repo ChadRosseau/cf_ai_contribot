@@ -16,6 +16,15 @@ export const auth_user = sqliteTable("auth_user", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  preferredLanguages: text("preferred_languages", { mode: "json" })
+    .$type<string[]>()
+    .default([]),
+  difficultyPreference: integer("difficulty_preference")
+    .default(3),
+  onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  onboardedAt: integer("onboarded_at", { mode: "timestamp_ms" }),
 });
 
 export const auth_session = sqliteTable("auth_session", {

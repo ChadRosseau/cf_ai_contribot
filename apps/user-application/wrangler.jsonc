@@ -5,7 +5,6 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "./src/server.ts",
 	"vars": {
-		"MY_VAR": "Hello from Cloudflare"
 	},
 
 	"d1_databases": [
@@ -14,6 +13,13 @@
 			"database_name": "contribot",
 			"database_id": "6bf3bf79-2dc9-429e-a61e-6110868018c8",
 			"remote": true
+		}
+	],
+
+	"services": [
+		{
+			"binding": "AGENT_SERVICE",
+			"service": "contribot-agent-service"
 		}
 	]
 }
