@@ -19,7 +19,7 @@ export async function hashRepoMetadata(
 	owner: string,
 	name: string,
 	languagesOrdered: string[],
-	goodFirstIssueTag: string
+	goodFirstIssueTag: string,
 ): Promise<string> {
 	const data = JSON.stringify({
 		owner,
@@ -37,7 +37,7 @@ export async function hashRepoMetadata(
 export async function hashIssueMetadata(
 	commentCount: number,
 	state: string,
-	assigneeStatus: string[] | null
+	assigneeStatus: string[] | null,
 ): Promise<string> {
 	const data = JSON.stringify({
 		commentCount,
@@ -46,4 +46,3 @@ export async function hashIssueMetadata(
 	});
 	return sha256(data);
 }
-

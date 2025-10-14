@@ -5,7 +5,10 @@
 
 import { initDatabase } from "@repo/data-ops/database/setup";
 import { GitHubApiClient } from "../utils/github-api";
-import { AdapterRegistry, DATA_SOURCE_CONFIGS } from "../scraper/adapters/registry";
+import {
+	AdapterRegistry,
+	DATA_SOURCE_CONFIGS,
+} from "../scraper/adapters/registry";
 import { DiscoveryProcessor } from "./processor";
 import type { RepoSourceData } from "../scraper/adapters/base-adapter";
 
@@ -26,7 +29,11 @@ export async function runDiscovery(env: Env): Promise<DiscoveryRunStats> {
 	const db = initDatabase(env.DB);
 	const githubClient = new GitHubApiClient(env.GITHUB_SCRAPER_TOKEN);
 	const adapterRegistry = new AdapterRegistry();
-	const processor = new DiscoveryProcessor(db as any, githubClient, env.PROCESSING_QUEUE);
+	const processor = new DiscoveryProcessor(
+		db as any,
+		githubClient,
+		env.PROCESSING_QUEUE,
+	);
 
 	// Step 1: Fetch repos from all data sources
 	console.log("\n[Step 1] Fetching repos from data sources...");
@@ -69,4 +76,3 @@ export async function runDiscovery(env: Env): Promise<DiscoveryRunStats> {
 		duration: Date.now() - startTime,
 	};
 }
-

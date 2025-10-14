@@ -110,7 +110,9 @@ export class WorkflowLogger {
 	 * End the current workflow step
 	 */
 	endStep(stepName: string, result?: unknown): void {
-		const duration = this.stepStartTime ? Date.now() - this.stepStartTime : undefined;
+		const duration = this.stepStartTime
+			? Date.now() - this.stepStartTime
+			: undefined;
 
 		this.r2Logger.log({
 			level: "info",
@@ -128,7 +130,9 @@ export class WorkflowLogger {
 	 * Log a step error
 	 */
 	stepError(stepName: string, error: unknown): void {
-		const duration = this.stepStartTime ? Date.now() - this.stepStartTime : undefined;
+		const duration = this.stepStartTime
+			? Date.now() - this.stepStartTime
+			: undefined;
 
 		this.r2Logger.log({
 			level: "error",
@@ -157,4 +161,3 @@ export class WorkflowLogger {
 		await this.r2Logger.flush();
 	}
 }
-

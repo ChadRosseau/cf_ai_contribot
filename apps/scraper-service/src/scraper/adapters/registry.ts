@@ -41,4 +41,3 @@ export const DATA_SOURCE_CONFIGS: DataSourceConfig[] = [
 		enabled: true,
 	},
 ];
-

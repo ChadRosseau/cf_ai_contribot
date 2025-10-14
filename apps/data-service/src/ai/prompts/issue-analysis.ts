@@ -6,7 +6,7 @@ export function generateIssueAnalysisPrompt(
 	repoName: string,
 	repoOwner: string,
 	issueTitle: string,
-	issueBody: string | null
+	issueBody: string | null,
 ): string {
 	const body = issueBody || "No description provided.";
 
@@ -28,4 +28,3 @@ Focus on being encouraging and practical. Think about what a complete beginner w
 
 Response:`;
 }
-

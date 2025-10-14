@@ -31,7 +31,7 @@ export interface UserGitHubTokens {
  */
 export async function getUserPreferences(
 	db: DrizzleD1Database,
-	userId: string
+	userId: string,
 ): Promise<UserPreferences | null> {
 	try {
 		const user = await db
@@ -67,7 +67,7 @@ export async function getUserPreferences(
 export async function updateUserPreferences(
 	db: DrizzleD1Database,
 	userId: string,
-	data: UpdateUserPreferencesData
+	data: UpdateUserPreferencesData,
 ): Promise<void> {
 	try {
 		const updates: Record<string, any> = {};
@@ -93,7 +93,10 @@ export async function updateUserPreferences(
 			.where(eq(auth_user.id, userId))
 			.run();
 	} catch (error) {
-		console.error(`Failed to update user preferences for user ${userId}:`, error);
+		console.error(
+			`Failed to update user preferences for user ${userId}:`,
+			error,
+		);
 		throw error;
 	}
 }
@@ -103,7 +106,7 @@ export async function updateUserPreferences(
  */
 export async function getUserById(
 	db: DrizzleD1Database,
-	userId: string
+	userId: string,
 ): Promise<{ id: string; email: string | null; name: string | null } | null> {
 	try {
 		const user = await db
@@ -128,7 +131,7 @@ export async function getUserById(
  */
 export async function getUserGitHubTokens(
 	db: DrizzleD1Database,
-	userId: string
+	userId: string,
 ): Promise<UserGitHubTokens | null> {
 	try {
 		const result = await db
@@ -141,8 +144,8 @@ export async function getUserGitHubTokens(
 			.where(
 				and(
 					eq(auth_account.userId, userId),
-					eq(auth_account.providerId, "github")
-				)
+					eq(auth_account.providerId, "github"),
+				),
 			)
 			.limit(1)
 			.get();
@@ -157,7 +160,10 @@ export async function getUserGitHubTokens(
 			expiresAt: result.expiresAt ? result.expiresAt.getTime() : undefined,
 		};
 	} catch (error) {
-		console.error(`Failed to retrieve GitHub tokens for user ${userId}:`, error);
+		console.error(
+			`Failed to retrieve GitHub tokens for user ${userId}:`,
+			error,
+		);
 		throw error;
 	}
 }

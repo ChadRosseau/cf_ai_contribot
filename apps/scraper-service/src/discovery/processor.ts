@@ -40,7 +40,7 @@ export class DiscoveryProcessor {
 	constructor(
 		db: DrizzleD1Database,
 		githubClient: GitHubApiClient,
-		queue: Queue<ProcessingQueueMessage>
+		queue: Queue<ProcessingQueueMessage>,
 	) {
 		this.db = db;
 		this.githubClient = githubClient;
@@ -57,14 +57,19 @@ export class DiscoveryProcessor {
 			try {
 				await this.processRepo(repo);
 			} catch (error) {
-				console.error(`Error discovering repo ${repo.owner}/${repo.name}:`, error);
-				
+				console.error(
+					`Error discovering repo ${repo.owner}/${repo.name}:`,
+					error,
+				);
+
 				// Check for auth failure - fatal error
 				if (error instanceof Error && error.message.includes("Forbidden")) {
 					console.error("❌ GitHub authentication failed");
-					throw new Error("GitHub authentication failed: Invalid or expired token");
+					throw new Error(
+						"GitHub authentication failed: Invalid or expired token",
+					);
 				}
-				
+
 				this.stats.reposErrors++;
 			}
 		}
@@ -79,16 +84,21 @@ export class DiscoveryProcessor {
 		this.stats.reposDiscovered++;
 
 		// 1. Fetch label-specific issue count from GitHub GraphQL
-		console.log(`Fetching issue count for ${sourceData.owner}/${sourceData.name} (label: "${sourceData.goodFirstIssueTag}")...`);
+		console.log(
+			`Fetching issue count for ${sourceData.owner}/${sourceData.name} (label: "${sourceData.goodFirstIssueTag}")...`,
+		);
 		let labelCount;
 		try {
 			labelCount = await this.githubClient.fetchIssueLabelCount(
 				sourceData.owner,
 				sourceData.name,
-				sourceData.goodFirstIssueTag
+				sourceData.goodFirstIssueTag,
 			);
 		} catch (error) {
-			console.error(`Failed to fetch issue count for ${sourceData.owner}/${sourceData.name}:`, error);
+			console.error(
+				`Failed to fetch issue count for ${sourceData.owner}/${sourceData.name}:`,
+				error,
+			);
 			throw error;
 		}
 
@@ -96,7 +106,7 @@ export class DiscoveryProcessor {
 		const existingRepo = await findRepoByOwnerName(
 			this.db as any,
 			sourceData.owner,
-			sourceData.name
+			sourceData.name,
 		);
 
 		// 3. Calculate metadata hash (only source metadata, not GitHub data)
@@ -104,7 +114,7 @@ export class DiscoveryProcessor {
 			sourceData.owner,
 			sourceData.name,
 			sourceData.goodFirstIssueTag,
-			sourceData.dataSourceId
+			sourceData.dataSourceId,
 		);
 
 		const githubUrl = `https://github.com/${sourceData.owner}/${sourceData.name}`;
@@ -125,7 +135,9 @@ export class DiscoveryProcessor {
 
 			const insertedRepo = await insertRepo(this.db as any, newRepo);
 			this.stats.reposNew++;
-			console.log(`✓ New repo discovered: ${sourceData.owner}/${sourceData.name} (${labelCount.openCount} open "${sourceData.goodFirstIssueTag}" issues)`);
+			console.log(
+				`✓ New repo discovered: ${sourceData.owner}/${sourceData.name} (${labelCount.openCount} open "${sourceData.goodFirstIssueTag}" issues)`,
+			);
 
 			// Queue for processing
 			await this.queue.send({
@@ -137,7 +149,8 @@ export class DiscoveryProcessor {
 		} else {
 			// Repo exists - check if anything changed
 			const hashChanged = existingRepo.metadataHash !== metadataHash;
-			const issueCountChanged = existingRepo.openIssuesCount !== labelCount.openCount;
+			const issueCountChanged =
+				existingRepo.openIssuesCount !== labelCount.openCount;
 
 			if (hashChanged || issueCountChanged) {
 				// Something changed - update and queue
@@ -150,13 +163,17 @@ export class DiscoveryProcessor {
 
 				await updateRepo(this.db as any, existingRepo.id, updateData);
 				this.stats.reposUpdated++;
-				
+
 				const reasons = [];
 				if (hashChanged) reasons.push("metadata changed");
 				if (issueCountChanged) {
-					reasons.push(`issue count changed (${existingRepo.openIssuesCount} → ${labelCount.openCount})`);
+					reasons.push(
+						`issue count changed (${existingRepo.openIssuesCount} → ${labelCount.openCount})`,
+					);
 				}
-				console.log(`✓ Updated repo ID ${existingRepo.id}: ${sourceData.owner}/${sourceData.name} (${reasons.join(", ")})`);
+				console.log(
+					`✓ Updated repo ID ${existingRepo.id}: ${sourceData.owner}/${sourceData.name} (${reasons.join(", ")})`,
+				);
 
 				// Queue for reprocessing
 				await this.queue.send({
@@ -168,7 +185,9 @@ export class DiscoveryProcessor {
 			} else {
 				// No changes - skip
 				this.stats.reposUnchanged++;
-				console.log(`- Skipped repo ID ${existingRepo.id}: ${sourceData.owner}/${sourceData.name} (no changes)`);
+				console.log(
+					`- Skipped repo ID ${existingRepo.id}: ${sourceData.owner}/${sourceData.name} (no changes)`,
+				);
 			}
 		}
 	}
@@ -177,4 +196,3 @@ export class DiscoveryProcessor {
 		return this.stats;
 	}
 }
-

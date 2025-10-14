@@ -14,7 +14,7 @@ import { IssueProcessor } from "./processor/issue-processor";
 const queue: ExportedHandlerQueueHandler<Env, ProcessingQueueMessage> = async (
 	batch,
 	env,
-	ctx
+	ctx,
 ) => {
 	console.log("=== Queue Consumer: Data Service ===");
 	console.log(`Processing batch of ${batch.messages.length} messages`);
@@ -26,7 +26,7 @@ const queue: ExportedHandlerQueueHandler<Env, ProcessingQueueMessage> = async (
 		env.WORKFLOW_LOGS,
 		loggingEnabled,
 		batchId,
-		"data-service"
+		"data-service",
 	);
 	const logger = new WorkflowLogger(r2Logger);
 
@@ -36,8 +36,17 @@ const queue: ExportedHandlerQueueHandler<Env, ProcessingQueueMessage> = async (
 	const db = initDatabase(env.DB);
 	const githubClient = new GitHubApiClient(env.GITHUB_SCRAPER_TOKEN);
 	const aiSummarizer = new AiSummarizer(env.AI);
-	const repoProcessor = new RepoProcessor(db as any, githubClient, aiSummarizer, env.PROCESSING_QUEUE);
-	const issueProcessor = new IssueProcessor(db as any, githubClient, aiSummarizer);
+	const repoProcessor = new RepoProcessor(
+		db as any,
+		githubClient,
+		aiSummarizer,
+		env.PROCESSING_QUEUE,
+	);
+	const issueProcessor = new IssueProcessor(
+		db as any,
+		githubClient,
+		aiSummarizer,
+	);
 
 	for (const message of batch.messages) {
 		try {
@@ -64,10 +73,12 @@ const queue: ExportedHandlerQueueHandler<Env, ProcessingQueueMessage> = async (
 			if (
 				error instanceof Error &&
 				(error.message.includes("too many subrequests") ||
-				 error.message.includes("Too many subrequests") ||
-				 error.message.includes("Failed query"))
+					error.message.includes("Too many subrequests") ||
+					error.message.includes("Failed query"))
 			) {
-				console.log("⚠️ Hit subrequest limit - terminating and retrying message in new invocation");
+				console.log(
+					"⚠️ Hit subrequest limit - terminating and retrying message in new invocation",
+				);
 				logger.stopCapture();
 				await logger.flush();
 				message.retry();

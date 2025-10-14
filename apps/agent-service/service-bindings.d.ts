@@ -9,4 +9,3 @@ declare module "cloudflare:workers" {
 		GITHUB_CLIENT_SECRET: string;
 	}
 }
-

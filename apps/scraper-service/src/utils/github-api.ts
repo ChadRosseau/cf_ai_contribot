@@ -63,10 +63,13 @@ export class GitHubApiClient {
 			this.rateLimitState.hourStartTime = now;
 		}
 
-		if (this.rateLimitState.requestsThisHour >= this.MAX_REQUESTS_PER_HOUR - 100) {
+		if (
+			this.rateLimitState.requestsThisHour >=
+			this.MAX_REQUESTS_PER_HOUR - 100
+		) {
 			const timeUntilNextHour = 3600000 - hourElapsed;
 			console.warn(
-				`Rate limit approaching. Waiting ${timeUntilNextHour}ms until next hour`
+				`Rate limit approaching. Waiting ${timeUntilNextHour}ms until next hour`,
 			);
 			return timeUntilNextHour;
 		}
@@ -101,14 +104,19 @@ export class GitHubApiClient {
 			});
 
 			if (response.headers.has("x-ratelimit-remaining")) {
-				const remaining = parseInt(response.headers.get("x-ratelimit-remaining") || "0");
+				const remaining = parseInt(
+					response.headers.get("x-ratelimit-remaining") || "0",
+				);
 				console.log(`GitHub rate limit remaining: ${remaining}`);
 			}
 
 			if (!response.ok) {
 				const errorBody = await response.text();
-				console.error(`GitHub API Error Response (${response.status}):`, errorBody);
-				
+				console.error(
+					`GitHub API Error Response (${response.status}):`,
+					errorBody,
+				);
+
 				if (response.status === 404) {
 					throw new Error(`Not found: ${endpoint}`);
 				}
@@ -119,14 +127,18 @@ export class GitHubApiClient {
 					console.error("  3. Rate limit exceeded (different from 429)");
 					throw new Error(`Forbidden: Check token validity`);
 				}
-				throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorBody}`);
+				throw new Error(
+					`GitHub API error: ${response.status} ${response.statusText} - ${errorBody}`,
+				);
 			}
 
 			return await response.json();
 		} catch (error) {
 			if (retries > 0 && error instanceof TypeError) {
 				console.warn(`Network error, retrying... (${retries} attempts left)`);
-				await new Promise((resolve) => setTimeout(resolve, 1000 * (4 - retries)));
+				await new Promise((resolve) =>
+					setTimeout(resolve, 1000 * (4 - retries)),
+				);
 				return this.request<T>(endpoint, retries - 1);
 			}
 			throw error;
@@ -136,7 +148,10 @@ export class GitHubApiClient {
 	/**
 	 * Fetch repository metadata
 	 */
-	async fetchRepoMetadata(owner: string, name: string): Promise<GitHubRepoMetadata> {
+	async fetchRepoMetadata(
+		owner: string,
+		name: string,
+	): Promise<GitHubRepoMetadata> {
 		return this.request<GitHubRepoMetadata>(`/repos/${owner}/${name}`);
 	}
 
@@ -146,7 +161,7 @@ export class GitHubApiClient {
 	async fetchIssueLabelCount(
 		owner: string,
 		name: string,
-		label: string
+		label: string,
 	): Promise<GitHubIssueLabelCount> {
 		const query = {
 			query: `query {
@@ -168,7 +183,7 @@ export class GitHubApiClient {
 		this.rateLimitState.lastRequestTime = Date.now();
 
 		console.log(
-			`GitHub GraphQL Request: repository(owner: "${owner}", name: "${name}") label: "${label}"`
+			`GitHub GraphQL Request: repository(owner: "${owner}", name: "${name}") label: "${label}"`,
 		);
 
 		try {
@@ -185,18 +200,24 @@ export class GitHubApiClient {
 			if (!response.ok) {
 				const errorBody = await response.text();
 				console.error(`GitHub GraphQL Error (${response.status}):`, errorBody);
-				throw new Error(`GitHub GraphQL error: ${response.status} ${response.statusText}`);
+				throw new Error(
+					`GitHub GraphQL error: ${response.status} ${response.statusText}`,
+				);
 			}
 
 			const result = (await response.json()) as GraphQLResponse;
 
 			if (result.errors) {
 				console.error("GraphQL errors:", result.errors);
-				throw new Error(`GraphQL query failed: ${JSON.stringify(result.errors)}`);
+				throw new Error(
+					`GraphQL query failed: ${JSON.stringify(result.errors)}`,
+				);
 			}
 
 			if (!result.data?.repository) {
-				throw new Error(`Repository not found or inaccessible: ${owner}/${name}`);
+				throw new Error(
+					`Repository not found or inaccessible: ${owner}/${name}`,
+				);
 			}
 
 			return {
@@ -217,24 +238,27 @@ export class GitHubApiClient {
 		label: string,
 		state: "open" | "closed" | "all" = "open",
 		page = 1,
-		perPage = 100
+		perPage = 100,
 	): Promise<GitHubIssue[]> {
 		try {
 			const issues = await this.request<GitHubIssue[]>(
 				`/repos/${owner}/${name}/issues?labels=${encodeURIComponent(
-					label
-				)}&state=${state}&page=${page}&per_page=${perPage}`
+					label,
+				)}&state=${state}&page=${page}&per_page=${perPage}`,
 			);
 
 			return issues;
 		} catch (error) {
 			console.error(`Failed to fetch issues for ${owner}/${name}:`, error);
-			
+
 			// Check for subrequest limit
-			if (error instanceof Error && error.message.includes("too many subrequests")) {
+			if (
+				error instanceof Error &&
+				error.message.includes("too many subrequests")
+			) {
 				throw error; // Propagate to trigger continuation
 			}
-			
+
 			return [];
 		}
 	}
@@ -246,25 +270,32 @@ export class GitHubApiClient {
 		owner: string,
 		name: string,
 		label: string,
-		state: "open" | "closed" | "all" = "open"
+		state: "open" | "closed" | "all" = "open",
 	): Promise<GitHubIssue[]> {
 		const allIssues: GitHubIssue[] = [];
 		let page = 1;
 		let hasMore = true;
 
 		while (hasMore) {
-			const issues = await this.fetchIssues(owner, name, label, state, page, 100);
-			
+			const issues = await this.fetchIssues(
+				owner,
+				name,
+				label,
+				state,
+				page,
+				100,
+			);
+
 			if (issues.length === 0) {
 				hasMore = false;
 			} else {
 				allIssues.push(...issues);
 				page++;
-				
+
 				// Safety limit: max 100 pages (10,000 issues)
 				if (page > 100) {
 					console.warn(
-						`Reached pagination limit for ${owner}/${name}. Some issues may be missing.`
+						`Reached pagination limit for ${owner}/${name}. Some issues may be missing.`,
 					);
 					hasMore = false;
 				}
@@ -278,7 +309,8 @@ export class GitHubApiClient {
 		return {
 			made: this.rateLimitState.requestsThisHour,
 			requestsThisHour: this.rateLimitState.requestsThisHour,
-			remaining: this.MAX_REQUESTS_PER_HOUR - this.rateLimitState.requestsThisHour,
+			remaining:
+				this.MAX_REQUESTS_PER_HOUR - this.rateLimitState.requestsThisHour,
 			maxPerHour: this.MAX_REQUESTS_PER_HOUR,
 		};
 	}
@@ -297,4 +329,3 @@ export interface GitHubIssue {
 	html_url: string;
 	pull_request?: unknown;
 }
-

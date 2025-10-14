@@ -46,7 +46,10 @@ export class IssueProcessor {
 		this.githubClient = githubClient;
 	}
 
-	async processRepos(repos: RepoInfo[], maxIssuesPerRepo?: number): Promise<IssueProcessorStats> {
+	async processRepos(
+		repos: RepoInfo[],
+		maxIssuesPerRepo?: number,
+	): Promise<IssueProcessorStats> {
 		console.log(`Processing issues for ${repos.length} repos...`);
 		if (maxIssuesPerRepo) {
 			console.log(`⚠️  Limited to ${maxIssuesPerRepo} issues per repo`);
@@ -58,7 +61,7 @@ export class IssueProcessor {
 			} catch (error) {
 				console.error(
 					`Error processing issues for ${repo.owner}/${repo.name}:`,
-					error
+					error,
 				);
 				this.stats.errors++;
 			}
@@ -68,9 +71,12 @@ export class IssueProcessor {
 		return this.stats;
 	}
 
-	private async processRepoIssues(repo: RepoInfo, maxIssues?: number): Promise<void> {
+	private async processRepoIssues(
+		repo: RepoInfo,
+		maxIssues?: number,
+	): Promise<void> {
 		console.log(
-			`Fetching issues for ${repo.owner}/${repo.name} with label "${repo.goodFirstIssueTag}"`
+			`Fetching issues for ${repo.owner}/${repo.name} with label "${repo.goodFirstIssueTag}"`,
 		);
 
 		// Fetch all open issues with the good-first-issue tag
@@ -78,7 +84,7 @@ export class IssueProcessor {
 			repo.owner,
 			repo.name,
 			repo.goodFirstIssueTag,
-			"open"
+			"open",
 		);
 
 		// Filter out pull requests (they have a pull_request field)
@@ -88,7 +94,9 @@ export class IssueProcessor {
 
 		// Apply limit if specified
 		if (maxIssues && actualIssues.length > maxIssues) {
-			console.log(`  ⚠️  Processing only ${maxIssues} of ${actualIssues.length} issues`);
+			console.log(
+				`  ⚠️  Processing only ${maxIssues} of ${actualIssues.length} issues`,
+			);
 			actualIssues = actualIssues.slice(0, maxIssues);
 		}
 
@@ -98,7 +106,7 @@ export class IssueProcessor {
 			} catch (error) {
 				console.error(
 					`Error processing issue #${issue.number} for ${repo.owner}/${repo.name}:`,
-					error
+					error,
 				);
 				this.stats.errors++;
 			}
@@ -107,7 +115,7 @@ export class IssueProcessor {
 
 	private async processIssue(
 		repo: RepoInfo,
-		githubIssue: GitHubIssue
+		githubIssue: GitHubIssue,
 	): Promise<void> {
 		this.stats.processed++;
 
@@ -115,7 +123,7 @@ export class IssueProcessor {
 		const existingIssue = await findIssueByRepoAndNumber(
 			this.db,
 			repo.id,
-			githubIssue.number
+			githubIssue.number,
 		);
 
 		// Extract assignee logins
@@ -128,7 +136,7 @@ export class IssueProcessor {
 		const metadataHash = await hashIssueMetadata(
 			githubIssue.comments,
 			githubIssue.state,
-			assigneeStatus
+			assigneeStatus,
 		);
 
 		const githubUrl = `https://github.com/${repo.owner}/${repo.name}/issues/${githubIssue.number}`;
@@ -185,7 +193,7 @@ export class IssueProcessor {
 
 	private async updateExistingIssue(
 		id: number,
-		data: UpdateIssueData
+		data: UpdateIssueData,
 	): Promise<void> {
 		await updateIssue(this.db, id, data);
 
@@ -198,4 +206,3 @@ export class IssueProcessor {
 		return this.stats;
 	}
 }
-

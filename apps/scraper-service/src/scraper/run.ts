@@ -33,7 +33,7 @@ export interface ScraperRunStats {
 
 export async function runScraper(
 	env: Env,
-	startFromCursor?: ScraperCursor
+	startFromCursor?: ScraperCursor,
 ): Promise<ScraperRunStats> {
 	console.log("=== Starting Scraper Run ===");
 	const startTime = Date.now();
@@ -41,7 +41,11 @@ export async function runScraper(
 	const db = initDatabase(env.DB);
 	const githubClient = new GitHubApiClient(env.GITHUB_SCRAPER_TOKEN);
 	const adapterRegistry = new AdapterRegistry();
-	const processor = new MetadataProcessor(db as any, githubClient, env.PROCESSING_QUEUE);
+	const processor = new MetadataProcessor(
+		db as any,
+		githubClient,
+		env.PROCESSING_QUEUE,
+	);
 
 	let completed = true;
 	let continuationQueued = false;
@@ -75,9 +79,12 @@ export async function runScraper(
 			console.log(`✓ Fetched ${repoData.length} repos from ${adapter.name}`);
 		} catch (error) {
 			console.error(`Error fetching from ${adapter.name}:`, error);
-			
+
 			// Check for subrequest limit
-			if (error instanceof Error && error.message.includes("too many subrequests")) {
+			if (
+				error instanceof Error &&
+				error.message.includes("too many subrequests")
+			) {
 				console.error("⛔ Hit subrequest limit while fetching data sources");
 				throw error;
 			}
@@ -88,10 +95,13 @@ export async function runScraper(
 
 	// Apply cursor if resuming
 	const startIndex = startFromCursor ? startFromCursor.lastRepoIndex + 1 : 0;
-	const reposToProcess = startIndex > 0 ? allRepoData.slice(startIndex) : allRepoData;
+	const reposToProcess =
+		startIndex > 0 ? allRepoData.slice(startIndex) : allRepoData;
 
 	if (startFromCursor) {
-		console.log(`Resuming from index ${startIndex} (${reposToProcess.length} repos remaining)`);
+		console.log(
+			`Resuming from index ${startIndex} (${reposToProcess.length} repos remaining)`,
+		);
 	}
 
 	// Step 2: Process repos and issues
@@ -106,17 +116,20 @@ export async function runScraper(
 				await processor.processRepos([repo]);
 			} catch (error) {
 				console.error(`Error processing ${repo.owner}/${repo.name}:`, error);
-				
+
 				// Check for subrequest limit or D1 failures
 				if (
-					error instanceof Error && 
+					error instanceof Error &&
 					(error.message.includes("too many subrequests") ||
-					 error.message.includes("Too many subrequests") ||
-					 (error.message.includes("Failed query") && error.message.includes("network")))
+						error.message.includes("Too many subrequests") ||
+						(error.message.includes("Failed query") &&
+							error.message.includes("network")))
 				) {
-					console.log(`⛔ Hit subrequest/D1 limit at repo ${actualIndex}/${allRepoData.length}`);
+					console.log(
+						`⛔ Hit subrequest/D1 limit at repo ${actualIndex}/${allRepoData.length}`,
+					);
 					console.log(`Error: ${error.message}`);
-					
+
 					// Queue continuation - will be picked up by the queue consumer
 					const cursor: ScraperCursor = {
 						lastRepoIndex: actualIndex,
@@ -137,10 +150,10 @@ export async function runScraper(
 						console.error("Failed to queue continuation:", queueError);
 						console.warn("⚠️ Scraper will not continue automatically");
 					}
-					
+
 					break; // Stop processing immediately
 				}
-				
+
 				throw error; // Other errors
 			}
 		}
@@ -159,4 +172,3 @@ export async function runScraper(
 		throw error;
 	}
 }
-

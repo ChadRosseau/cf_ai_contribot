@@ -15,9 +15,15 @@ import {
 } from "cloudflare:workers";
 import { initDatabase } from "@repo/data-ops/database/setup";
 import { GitHubApiClient } from "../utils/github-api";
-import { AdapterRegistry, DATA_SOURCE_CONFIGS } from "../scrapers/adapters/registry";
+import {
+	AdapterRegistry,
+	DATA_SOURCE_CONFIGS,
+} from "../scrapers/adapters/registry";
 import { RepoProcessor } from "../scrapers/processors/repo-processor";
-import { IssueProcessor, type RepoInfo } from "../scrapers/processors/issue-processor";
+import {
+	IssueProcessor,
+	type RepoInfo,
+} from "../scrapers/processors/issue-processor";
 import { getAllRepos } from "@repo/data-ops/queries/repos";
 import { processAiQueueBatch } from "../ai/queue-processor";
 import type { RepoSourceData } from "../scrapers/adapters/base-adapter";
@@ -34,12 +40,16 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 > {
 	async run(
 		event: Readonly<WorkflowEvent<ScraperWorkflowParams>>,
-		step: WorkflowStep
+		step: WorkflowStep,
 	) {
 		// Initialize R2 logging
 		const loggingEnabled = this.env.ENABLE_R2_LOGGING === "true";
 		const runId = `workflow-${Date.now()}`;
-		const r2Logger = new R2Logger(this.env.WORKFLOW_LOGS, loggingEnabled, runId);
+		const r2Logger = new R2Logger(
+			this.env.WORKFLOW_LOGS,
+			loggingEnabled,
+			runId,
+		);
 		const logger = new WorkflowLogger(r2Logger);
 
 		// Start capturing console output
@@ -79,14 +89,18 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 							console.log(`Fetching from ${adapter.name}...`);
 							const repoData = await adapter.fetch(config.url);
 							allRepoData.push(...repoData);
-							console.log(`✓ Fetched ${repoData.length} repos from ${adapter.name}`);
+							console.log(
+								`✓ Fetched ${repoData.length} repos from ${adapter.name}`,
+							);
 						} catch (error) {
 							console.error(`Error fetching from ${adapter.name}:`, error);
 						}
 					}
 
 					console.log(`Total repos from all sources: ${allRepoData.length}`);
-					logger.endStep("fetch-repos-from-sources", { count: allRepoData.length });
+					logger.endStep("fetch-repos-from-sources", {
+						count: allRepoData.length,
+					});
 					await logger.flushKeep();
 					return allRepoData;
 				} catch (error) {
@@ -94,7 +108,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 					await logger.flushKeep();
 					throw error;
 				}
-			}
+			},
 		);
 
 		// Step 2: Process repos in batches (to avoid subrequest limits)
@@ -104,7 +118,9 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 			batches.push(repoDataList.slice(i, i + BATCH_SIZE));
 		}
 
-		console.log(`Processing ${repoDataList.length} repos in ${batches.length} batches of ${BATCH_SIZE}...`);
+		console.log(
+			`Processing ${repoDataList.length} repos in ${batches.length} batches of ${BATCH_SIZE}...`,
+		);
 
 		let repoStats = {
 			processed: 0,
@@ -120,7 +136,9 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 				async () => {
 					logger.startStep(`process-repos-batch-${i + 1}`);
 					try {
-						console.log(`Processing batch ${i + 1}/${batches.length} (${batches[i].length} repos)...`);
+						console.log(
+							`Processing batch ${i + 1}/${batches.length} (${batches[i].length} repos)...`,
+						);
 						const processor = new RepoProcessor(db as any, githubClient);
 						const stats = await processor.process(batches[i]);
 						logger.endStep(`process-repos-batch-${i + 1}`, stats);
@@ -131,7 +149,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 						await logger.flushKeep();
 						throw error;
 					}
-				}
+				},
 			);
 
 			// Aggregate stats
@@ -165,7 +183,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 					await logger.flushKeep();
 					throw error;
 				}
-			}
+			},
 		);
 
 		// Step 4: Process issues in batches (to avoid subrequest limits)
@@ -177,7 +195,9 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 			issueBatches.push(reposToProcess.slice(i, i + ISSUE_BATCH_SIZE));
 		}
 
-		console.log(`Processing issues for ${reposToProcess.length} repos in ${issueBatches.length} batches of ${ISSUE_BATCH_SIZE}...`);
+		console.log(
+			`Processing issues for ${reposToProcess.length} repos in ${issueBatches.length} batches of ${ISSUE_BATCH_SIZE}...`,
+		);
 
 		let issueStats = {
 			processed: 0,
@@ -193,7 +213,9 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 				async () => {
 					logger.startStep(`process-issues-batch-${i + 1}`);
 					try {
-						console.log(`Processing issues batch ${i + 1}/${issueBatches.length} (${issueBatches[i].length} repos)...`);
+						console.log(
+							`Processing issues batch ${i + 1}/${issueBatches.length} (${issueBatches[i].length} repos)...`,
+						);
 						const processor = new IssueProcessor(db as any, githubClient);
 						const stats = await processor.processRepos(issueBatches[i]);
 						logger.endStep(`process-issues-batch-${i + 1}`, stats);
@@ -204,7 +226,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 						await logger.flushKeep();
 						throw error;
 					}
-				}
+				},
 			);
 
 			// Aggregate stats
@@ -225,7 +247,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 		// Each AI item = 1 AI call + ~5 DB queries = ~6 subrequests per item
 		const MAX_AI_BATCHES = 30; // Max 30 batches
 		const AI_BATCH_SIZE = 8; // 8 items per batch (8 * 6 = 48 subrequests)
-		
+
 		console.log("Processing AI queue in batches...");
 
 		let aiStats = {
@@ -240,14 +262,18 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 
 		while (hasMore && batchNum < MAX_AI_BATCHES) {
 			batchNum++;
-			
+
 			const result = await step.do(
 				`process-ai-queue-batch-${batchNum}`,
 				async () => {
 					logger.startStep(`process-ai-queue-batch-${batchNum}`);
 					try {
 						console.log(`Processing AI queue batch ${batchNum}...`);
-						const result = await processAiQueueBatch(db as any, this.env.AI, AI_BATCH_SIZE);
+						const result = await processAiQueueBatch(
+							db as any,
+							this.env.AI,
+							AI_BATCH_SIZE,
+						);
 						logger.endStep(`process-ai-queue-batch-${batchNum}`, result.stats);
 						await logger.flushKeep();
 						return result;
@@ -256,7 +282,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 						await logger.flushKeep();
 						throw error;
 					}
-				}
+				},
 			);
 
 			// Aggregate stats
@@ -273,7 +299,9 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 		}
 
 		if (batchNum >= MAX_AI_BATCHES && hasMore) {
-			console.log(`Reached max AI batches (${MAX_AI_BATCHES}). ${aiStats.remaining} items remaining for next run.`);
+			console.log(
+				`Reached max AI batches (${MAX_AI_BATCHES}). ${aiStats.remaining} items remaining for next run.`,
+			);
 		}
 
 		console.log("AI processing stats (all batches):", aiStats);
@@ -316,4 +344,3 @@ export class ScraperWorkflow extends WorkflowEntrypoint<
 		console.log("Workflow logs flushed to R2");
 	}
 }
-

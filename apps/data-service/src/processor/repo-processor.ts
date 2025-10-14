@@ -42,7 +42,7 @@ export class RepoProcessor {
 		db: DrizzleD1Database,
 		githubClient: GitHubApiClient,
 		aiSummarizer: AiSummarizer,
-		queue: Queue<ProcessingQueueMessage>
+		queue: Queue<ProcessingQueueMessage>,
 	) {
 		this.db = db;
 		this.githubClient = githubClient;
@@ -79,7 +79,7 @@ export class RepoProcessor {
 		try {
 			const languages = await this.githubClient.fetchRepoLanguages(
 				repo.owner,
-				repo.name
+				repo.name,
 			);
 
 			// Update repo with languages
@@ -87,7 +87,7 @@ export class RepoProcessor {
 				languagesOrdered: languages.ordered,
 				languagesRaw: languages.raw,
 			});
-			
+
 			stats.languagesFetched = true;
 			console.log(`✓ Fetched languages: ${languages.ordered.join(", ")}`);
 		} catch (error) {
@@ -99,21 +99,25 @@ export class RepoProcessor {
 		console.log("Generating AI summary...");
 		try {
 			const repoWithLanguages = await getRepoById(this.db as any, repoId);
-			if (!repoWithLanguages) throw new Error(`Repo ID ${repoId} not found after language update`);
+			if (!repoWithLanguages)
+				throw new Error(`Repo ID ${repoId} not found after language update`);
 
 			const result = await this.aiSummarizer.summarizeRepo(
 				repoWithLanguages.owner,
 				repoWithLanguages.name,
-				repoWithLanguages.languagesOrdered || []
+				repoWithLanguages.languagesOrdered || [],
 			);
 
 			// Store AI summary
 			await storeRepoSummary(this.db as any, repoId, result.summary);
-			
+
 			stats.aiSummaryGenerated = true;
 			console.log(`✓ Generated AI summary`);
 		} catch (error) {
-			console.error(`⚠️ [Repo ID ${repoId}] Failed to generate AI summary:`, error);
+			console.error(
+				`⚠️ [Repo ID ${repoId}] Failed to generate AI summary:`,
+				error,
+			);
 			// Don't throw - continue with issues
 		}
 
@@ -124,7 +128,7 @@ export class RepoProcessor {
 				repo.owner,
 				repo.name,
 				repo.goodFirstIssueTag,
-				"open"
+				"open",
 			);
 
 			// Filter out PRs
@@ -132,7 +136,12 @@ export class RepoProcessor {
 			console.log(`Found ${actualIssues.length} open issues`);
 
 			if (actualIssues.length > 0) {
-				const issueStats = await this.processIssues(repo.id, repo.owner, repo.name, actualIssues);
+				const issueStats = await this.processIssues(
+					repo.id,
+					repo.owner,
+					repo.name,
+					actualIssues,
+				);
 				stats.issuesProcessed = issueStats.processed;
 				stats.issuesNew = issueStats.new;
 				stats.issuesUpdated = issueStats.updated;
@@ -146,11 +155,14 @@ export class RepoProcessor {
 				repo.id,
 				repo.owner,
 				repo.name,
-				actualIssues
+				actualIssues,
 			);
 			stats.issuesClosed = closedCount;
 		} catch (error) {
-			console.error(`❌ [Repo ID ${repoId}] Failed to fetch/process issues:`, error);
+			console.error(
+				`❌ [Repo ID ${repoId}] Failed to fetch/process issues:`,
+				error,
+			);
 			throw error; // Will retry
 		}
 
@@ -167,7 +179,7 @@ export class RepoProcessor {
 		repoId: number,
 		owner: string,
 		name: string,
-		githubIssues: GitHubIssue[]
+		githubIssues: GitHubIssue[],
 	): Promise<{
 		processed: number;
 		new: number;
@@ -190,7 +202,7 @@ export class RepoProcessor {
 		const existingIssuesMap = await batchFindIssuesByNumbers(
 			this.db as any,
 			repoId,
-			issueNumbers
+			issueNumbers,
 		);
 
 		const issuesToCreate: CreateIssueData[] = [];
@@ -212,7 +224,7 @@ export class RepoProcessor {
 				const metadataHash = await hashIssueMetadata(
 					githubIssue.comments,
 					githubIssue.state,
-					assigneeStatus
+					assigneeStatus,
 				);
 
 				const githubUrl = `https://github.com/${owner}/${name}/issues/${githubIssue.number}`;
@@ -258,7 +270,10 @@ export class RepoProcessor {
 
 				stats.processed++;
 			} catch (error) {
-				console.error(`❌ [Repo ID ${repoId}] Error processing issue #${githubIssue.number}:`, error);
+				console.error(
+					`❌ [Repo ID ${repoId}] Error processing issue #${githubIssue.number}:`,
+					error,
+				);
 				stats.errors++;
 			}
 		}
@@ -275,7 +290,7 @@ export class RepoProcessor {
 			for (let i = 0; i < issuesToCreate.length; i += BATCH_SIZE) {
 				const chunk = issuesToCreate.slice(i, i + BATCH_SIZE);
 				console.log(
-					`    Inserting chunk ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(issuesToCreate.length / BATCH_SIZE)} (${chunk.length} issues)...`
+					`    Inserting chunk ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(issuesToCreate.length / BATCH_SIZE)} (${chunk.length} issues)...`,
 				);
 
 				const insertedIssues = await batchCreateIssues(this.db as any, chunk);
@@ -292,7 +307,9 @@ export class RepoProcessor {
 				stats.queued++;
 			}
 
-			console.log(`  ✓ Created and queued ${allInsertedIssues.length} new issues`);
+			console.log(
+				`  ✓ Created and queued ${allInsertedIssues.length} new issues`,
+			);
 		}
 
 		// Update existing issues
@@ -327,13 +344,13 @@ export class RepoProcessor {
 		repoId: number,
 		owner: string,
 		name: string,
-		currentOpenIssues: GitHubIssue[]
+		currentOpenIssues: GitHubIssue[],
 	): Promise<number> {
 		console.log("\nDetecting closed issues...");
 
 		// Get all issues in DB that are marked as "open" for this repo
 		const dbOpenIssues = await getOpenIssuesByRepoId(this.db as any, repoId);
-		
+
 		if (dbOpenIssues.length === 0) {
 			console.log("  No open issues in DB to check");
 			return 0;
@@ -343,12 +360,12 @@ export class RepoProcessor {
 
 		// Create a set of currently open issue numbers from GitHub
 		const currentOpenNumbers = new Set(
-			currentOpenIssues.map((issue) => issue.number)
+			currentOpenIssues.map((issue) => issue.number),
 		);
 
 		// Find issues in DB that are NOT in the current open list
 		const potentiallyClosed = dbOpenIssues.filter(
-			(dbIssue) => !currentOpenNumbers.has(dbIssue.githubIssueNumber)
+			(dbIssue) => !currentOpenNumbers.has(dbIssue.githubIssueNumber),
 		);
 
 		if (potentiallyClosed.length === 0) {
@@ -357,7 +374,7 @@ export class RepoProcessor {
 		}
 
 		console.log(
-			`  Found ${potentiallyClosed.length} potentially closed issues, verifying...`
+			`  Found ${potentiallyClosed.length} potentially closed issues, verifying...`,
 		);
 
 		// Batch fetch these issues from GitHub to confirm their status
@@ -365,7 +382,7 @@ export class RepoProcessor {
 		const fetchedIssues = await this.githubClient.batchFetchIssues(
 			owner,
 			name,
-			issueNumbers
+			issueNumbers,
 		);
 
 		let closedCount = 0;
@@ -384,7 +401,7 @@ export class RepoProcessor {
 				const metadataHash = await hashIssueMetadata(
 					githubIssue.comments,
 					githubIssue.state,
-					assigneeStatus
+					assigneeStatus,
 				);
 
 				await updateIssue(this.db as any, dbIssue.id, {
@@ -398,11 +415,13 @@ export class RepoProcessor {
 				});
 
 				closedCount++;
-				console.log(`    ✓ Issue #${dbIssue.githubIssueNumber} marked as closed`);
+				console.log(
+					`    ✓ Issue #${dbIssue.githubIssueNumber} marked as closed`,
+				);
 			} else if (!githubIssue) {
 				// Issue not found - might be deleted or access denied
 				console.log(
-					`    ⚠️ Issue #${dbIssue.githubIssueNumber} not found (deleted or access denied)`
+					`    ⚠️ Issue #${dbIssue.githubIssueNumber} not found (deleted or access denied)`,
 				);
 			}
 		}

@@ -69,7 +69,7 @@ export class MetadataProcessor {
 	constructor(
 		db: DrizzleD1Database,
 		githubClient: GitHubApiClient,
-		queue: Queue<QueueMessage>
+		queue: Queue<QueueMessage>,
 	) {
 		this.db = db;
 		this.githubClient = githubClient;
@@ -86,20 +86,27 @@ export class MetadataProcessor {
 			try {
 				await this.processRepo(repo);
 			} catch (error) {
-				console.error(`Error processing repo ${repo.owner}/${repo.name}:`, error);
-				
+				console.error(
+					`Error processing repo ${repo.owner}/${repo.name}:`,
+					error,
+				);
+
 				// Check for subrequest limit or D1 failure
 				if (this.isSubrequestLimitError(error)) {
-					console.error("⛔ Hit subrequest/D1 limit - need to queue continuation");
+					console.error(
+						"⛔ Hit subrequest/D1 limit - need to queue continuation",
+					);
 					throw error; // Propagate to trigger continuation logic
 				}
-				
+
 				// Check for auth failure
 				if (error instanceof Error && error.message.includes("Forbidden")) {
 					console.error("❌ GitHub authentication failed");
-					throw new Error("GitHub authentication failed: Invalid or expired token");
+					throw new Error(
+						"GitHub authentication failed: Invalid or expired token",
+					);
 				}
-				
+
 				this.stats.repos.errors++;
 			}
 		}
@@ -117,7 +124,7 @@ export class MetadataProcessor {
 		const existingRepo = await findRepoByOwnerName(
 			this.db as any,
 			repoData.owner,
-			repoData.name
+			repoData.name,
 		);
 
 		// Compute metadata hash (only metadata, no languages)
@@ -125,7 +132,7 @@ export class MetadataProcessor {
 			repoData.owner,
 			repoData.name,
 			repoData.goodFirstIssueTag,
-			repoData.dataSourceId
+			repoData.dataSourceId,
 		);
 
 		const githubUrl = `https://github.com/${repoData.owner}/${repoData.name}`;
@@ -169,7 +176,9 @@ export class MetadataProcessor {
 
 				await updateRepo(this.db as any, existingRepo.id, updateData);
 				this.stats.repos.updated++;
-				console.log(`✓ Updated repo: ${repoData.owner}/${repoData.name} (hash changed)`);
+				console.log(
+					`✓ Updated repo: ${repoData.owner}/${repoData.name} (hash changed)`,
+				);
 
 				// Queue for reprocessing
 				await this.queue.send({
@@ -182,16 +191,23 @@ export class MetadataProcessor {
 			} else {
 				// Hash unchanged - skip
 				this.stats.repos.unchanged++;
-				console.log(`- Skipped repo: ${repoData.owner}/${repoData.name} (no changes)`);
+				console.log(
+					`- Skipped repo: ${repoData.owner}/${repoData.name} (no changes)`,
+				);
 			}
 		}
 
 		// Fetch and process issues for this repo
 		await this.processRepoIssues(
-			existingRepo?.id || (await findRepoByOwnerName(this.db as any, repoData.owner, repoData.name))!.id,
+			existingRepo?.id ||
+				(await findRepoByOwnerName(
+					this.db as any,
+					repoData.owner,
+					repoData.name,
+				))!.id,
 			repoData.owner,
 			repoData.name,
-			repoData.goodFirstIssueTag
+			repoData.goodFirstIssueTag,
 		);
 	}
 
@@ -202,13 +218,20 @@ export class MetadataProcessor {
 		repoId: number,
 		owner: string,
 		name: string,
-		goodFirstIssueTag: string
+		goodFirstIssueTag: string,
 	): Promise<void> {
-		console.log(`Fetching issues for ${owner}/${name} with label "${goodFirstIssueTag}"`);
+		console.log(
+			`Fetching issues for ${owner}/${name} with label "${goodFirstIssueTag}"`,
+		);
 
 		try {
 			// Fetch all open issues metadata
-			const issues = await this.githubClient.fetchAllIssues(owner, name, goodFirstIssueTag, "open");
+			const issues = await this.githubClient.fetchAllIssues(
+				owner,
+				name,
+				goodFirstIssueTag,
+				"open",
+			);
 
 			// Filter out pull requests
 			const actualIssues = issues.filter((issue) => !issue.pull_request);
@@ -220,11 +243,11 @@ export class MetadataProcessor {
 			}
 
 			// Batch fetch existing issues
-			const issueNumbers = actualIssues.map(i => i.number);
+			const issueNumbers = actualIssues.map((i) => i.number);
 			const existingIssuesMap = await batchFindIssuesByNumbers(
 				this.db as any,
 				repoId,
-				issueNumbers
+				issueNumbers,
 			);
 
 			const issuesToCreate: CreateIssueData[] = [];
@@ -246,7 +269,7 @@ export class MetadataProcessor {
 					const metadataHash = await hashIssueMetadata(
 						githubIssue.comments,
 						githubIssue.state,
-						assigneeStatus
+						assigneeStatus,
 					);
 
 					const githubUrl = `https://github.com/${owner}/${name}/issues/${githubIssue.number}`;
@@ -296,7 +319,7 @@ export class MetadataProcessor {
 				} catch (error) {
 					console.error(
 						`Error preparing issue #${githubIssue.number} for ${owner}/${name}:`,
-						error
+						error,
 					);
 					this.stats.issues.errors++;
 				}
@@ -305,21 +328,23 @@ export class MetadataProcessor {
 			// Batch insert new issues (in chunks to avoid query size limits)
 			if (issuesToCreate.length > 0) {
 				console.log(`  Batch inserting ${issuesToCreate.length} new issues...`);
-				
+
 				// D1 limit: 100 parameters per query
 				// Each issue has 15 parameters, so: 100 / 15 = 6.66
 				// Use 6 to stay safely under the limit (6 × 15 = 90 parameters)
 				const BATCH_SIZE = 6;
 				const allInsertedIssues = [];
-				
+
 				for (let i = 0; i < issuesToCreate.length; i += BATCH_SIZE) {
 					const chunk = issuesToCreate.slice(i, i + BATCH_SIZE);
-					console.log(`    Inserting chunk ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(issuesToCreate.length / BATCH_SIZE)} (${chunk.length} issues)...`);
-					
+					console.log(
+						`    Inserting chunk ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(issuesToCreate.length / BATCH_SIZE)} (${chunk.length} issues)...`,
+					);
+
 					const insertedIssues = await batchCreateIssues(this.db as any, chunk);
 					allInsertedIssues.push(...insertedIssues);
 				}
-				
+
 				// Queue all new issues for processing
 				console.log(`  Queueing ${allInsertedIssues.length} new issues...`);
 				for (const insertedIssue of allInsertedIssues) {
@@ -330,8 +355,10 @@ export class MetadataProcessor {
 					});
 					this.stats.issues.queued++;
 				}
-				
-				console.log(`  ✓ Created and queued ${allInsertedIssues.length} new issues`);
+
+				console.log(
+					`  ✓ Created and queued ${allInsertedIssues.length} new issues`,
+				);
 			}
 
 			// Batch update existing issues (need to do one at a time, unfortunately)
@@ -355,14 +382,13 @@ export class MetadataProcessor {
 					this.stats.issues.queued++;
 				}
 			}
-
 		} catch (error) {
 			// Check for subrequest limit
 			if (this.isSubrequestLimitError(error)) {
 				console.error("⛔ Hit subrequest limit during issue processing");
 				throw error; // Propagate to trigger continuation
 			}
-			
+
 			// Other errors - log and continue
 			console.error(`Error processing issues for ${owner}/${name}:`, error);
 			this.stats.issues.errors++;
@@ -393,4 +419,3 @@ export class MetadataProcessor {
 		return this.stats;
 	}
 }
-

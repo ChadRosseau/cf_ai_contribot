@@ -44,11 +44,11 @@ export interface ScraperRunStats {
 
 export async function runScraperDirect(
 	env: Env,
-	options?: { 
-		maxRepos?: number; 
+	options?: {
+		maxRepos?: number;
 		maxReposForIssues?: number;
 		maxIssuesPerRepo?: number;
-	}
+	},
 ): Promise<ScraperRunStats> {
 	// Initialize R2 logging
 	const loggingEnabled = env.ENABLE_R2_LOGGING === "true";
@@ -62,12 +62,14 @@ export async function runScraperDirect(
 	console.log("=== Starting Direct Scraper Run ===");
 	console.log("Run ID:", runId);
 	console.log("R2 Logging:", loggingEnabled ? "enabled" : "disabled");
-	
+
 	if (options?.maxRepos) {
 		console.log(`⚠️  Limited to ${options.maxRepos} repos for repo processing`);
 	}
 	if (options?.maxReposForIssues) {
-		console.log(`⚠️  Limited to ${options.maxReposForIssues} repos for issue processing`);
+		console.log(
+			`⚠️  Limited to ${options.maxReposForIssues} repos for issue processing`,
+		);
 	}
 	if (options?.maxIssuesPerRepo) {
 		console.log(`⚠️  Limited to ${options.maxIssuesPerRepo} issues per repo`);
@@ -119,9 +121,11 @@ export async function runScraperDirect(
 	const reposToProcess = options?.maxRepos
 		? allRepoData.slice(0, options.maxRepos)
 		: allRepoData;
-	
+
 	if (options?.maxRepos && reposToProcess.length < allRepoData.length) {
-		console.log(`⚠️  Processing only ${reposToProcess.length} of ${allRepoData.length} repos`);
+		console.log(
+			`⚠️  Processing only ${reposToProcess.length} of ${allRepoData.length} repos`,
+		);
 	}
 
 	// Step 2: Process repos
@@ -129,7 +133,7 @@ export async function runScraperDirect(
 	console.log("\n[Step 2] Processing repos...");
 	const repoProcessor = new RepoProcessor(db as any, githubClient);
 	let repoStats;
-	
+
 	try {
 		repoStats = await repoProcessor.process(reposToProcess);
 		console.log("Repo processing stats:", repoStats);
@@ -138,13 +142,18 @@ export async function runScraperDirect(
 	} catch (error) {
 		logger.stepError("process-repos", error);
 		await logger.flushKeep();
-		
+
 		// If authentication fails, stop immediately
-		if (error instanceof Error && error.message.includes("authentication failed")) {
+		if (
+			error instanceof Error &&
+			error.message.includes("authentication failed")
+		) {
 			console.error("\n❌ AUTHENTICATION FAILED ❌");
 			console.error(error.message);
-			console.error("\nPlease fix your GitHub token in .dev.vars and try again.");
-			
+			console.error(
+				"\nPlease fix your GitHub token in .dev.vars and try again.",
+			);
+
 			// Final flush before stopping
 			logger.stopCapture();
 			await logger.flush();
@@ -156,7 +165,7 @@ export async function runScraperDirect(
 	// Step 3: Get all repos for issue processing
 	logger.startStep("fetch-repos-for-issues");
 	console.log("\n[Step 3] Fetching repos for issue processing...");
-	
+
 	try {
 		const allRepos = await getAllRepos(db as any);
 		let reposForIssues: RepoInfo[] = allRepos.map((repo) => ({
@@ -167,8 +176,13 @@ export async function runScraperDirect(
 		}));
 
 		// Apply limit for issue processing if specified
-		if (options?.maxReposForIssues && reposForIssues.length > options.maxReposForIssues) {
-			console.log(`⚠️  Processing issues for only ${options.maxReposForIssues} of ${reposForIssues.length} repos`);
+		if (
+			options?.maxReposForIssues &&
+			reposForIssues.length > options.maxReposForIssues
+		) {
+			console.log(
+				`⚠️  Processing issues for only ${options.maxReposForIssues} of ${reposForIssues.length} repos`,
+			);
 			reposForIssues = reposForIssues.slice(0, options.maxReposForIssues);
 		}
 
@@ -180,8 +194,8 @@ export async function runScraperDirect(
 		console.log("\n[Step 4] Processing issues...");
 		const issueProcessor = new IssueProcessor(db as any, githubClient);
 		const issueStats = await issueProcessor.processRepos(
-			reposForIssues, 
-			options?.maxIssuesPerRepo
+			reposForIssues,
+			options?.maxIssuesPerRepo,
 		);
 		console.log("Issue processing stats:", issueStats);
 		logger.endStep("process-issues", issueStats);
@@ -217,11 +231,10 @@ export async function runScraperDirect(
 	} catch (error) {
 		logger.stepError("fetch-repos-for-issues", error);
 		await logger.flushKeep();
-		
+
 		// Final flush before rethrowing
 		logger.stopCapture();
 		await logger.flush();
 		throw error;
 	}
 }
-

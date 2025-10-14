@@ -15,4 +15,3 @@ export interface ScraperAdapter {
 	name: string;
 	fetch(url: string): Promise<RepoSourceData[]>;
 }
-

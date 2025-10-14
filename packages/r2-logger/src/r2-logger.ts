@@ -23,7 +23,7 @@ export class R2Logger {
 		bucket: R2Bucket | null | undefined,
 		enabled: boolean,
 		runId: string,
-		serviceName: string
+		serviceName: string,
 	) {
 		this.bucket = bucket || null;
 		this.enabled = enabled && this.bucket !== null;
@@ -94,4 +94,3 @@ export class R2Logger {
 		this.logs = [];
 	}
 }
-

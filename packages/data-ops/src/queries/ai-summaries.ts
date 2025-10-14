@@ -21,7 +21,7 @@ export interface UpsertSummaryData {
 export async function getSummaryByEntityTypeAndId(
 	db: DrizzleD1Database,
 	entityType: string,
-	entityId: number
+	entityId: number,
 ) {
 	const results = await db
 		.select()
@@ -29,8 +29,8 @@ export async function getSummaryByEntityTypeAndId(
 		.where(
 			and(
 				eq(aiSummaries.entityType, entityType),
-				eq(aiSummaries.entityId, entityId)
-			)
+				eq(aiSummaries.entityId, entityId),
+			),
 		)
 		.limit(1);
 
@@ -42,10 +42,14 @@ export async function getSummaryByEntityTypeAndId(
  */
 export async function upsertSummary(
 	db: DrizzleD1Database,
-	data: UpsertSummaryData
+	data: UpsertSummaryData,
 ) {
 	// Check if exists
-	const existing = await getSummaryByEntityTypeAndId(db, data.entityType, data.entityId);
+	const existing = await getSummaryByEntityTypeAndId(
+		db,
+		data.entityType,
+		data.entityId,
+	);
 
 	if (existing) {
 		// Update
@@ -85,7 +89,7 @@ export async function upsertSummary(
 export async function storeRepoSummary(
 	db: DrizzleD1Database,
 	repoId: number,
-	summary: string
+	summary: string,
 ) {
 	return upsertSummary(db, {
 		entityType: "repo",
@@ -104,7 +108,7 @@ export async function storeIssueSummary(
 		issueIntro: string;
 		difficultyScore: number;
 		firstSteps: string;
-	}
+	},
 ) {
 	return upsertSummary(db, {
 		entityType: "issue",
@@ -114,4 +118,3 @@ export async function storeIssueSummary(
 		firstSteps: data.firstSteps,
 	});
 }
-

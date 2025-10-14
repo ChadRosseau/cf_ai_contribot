@@ -2,7 +2,17 @@
  * Drizzle queries for issues table
  */
 
-import { eq, and, asc, desc, sql, like, or, between, isNull } from "drizzle-orm";
+import {
+	eq,
+	and,
+	asc,
+	desc,
+	sql,
+	like,
+	or,
+	between,
+	isNull,
+} from "drizzle-orm";
 import { issues, repos, aiSummaries } from "../drizzle/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
@@ -36,7 +46,7 @@ export interface UpdateIssueData {
 export async function findIssueByRepoAndNumber(
 	db: DrizzleD1Database,
 	repoId: number,
-	githubIssueNumber: number
+	githubIssueNumber: number,
 ) {
 	const results = await db
 		.select()
@@ -44,8 +54,8 @@ export async function findIssueByRepoAndNumber(
 		.where(
 			and(
 				eq(issues.repoId, repoId),
-				eq(issues.githubIssueNumber, githubIssueNumber)
-			)
+				eq(issues.githubIssueNumber, githubIssueNumber),
+			),
 		)
 		.limit(1);
 
@@ -57,7 +67,7 @@ export async function findIssueByRepoAndNumber(
  */
 export async function createIssue(
 	db: DrizzleD1Database,
-	data: CreateIssueData
+	data: CreateIssueData,
 ) {
 	const result = await db.insert(issues).values(data).returning();
 	return result[0];
@@ -68,10 +78,10 @@ export async function createIssue(
  */
 export async function batchCreateIssues(
 	db: DrizzleD1Database,
-	data: CreateIssueData[]
+	data: CreateIssueData[],
 ) {
 	if (data.length === 0) return [];
-	
+
 	const result = await db.insert(issues).values(data).returning();
 	return result;
 }
@@ -82,7 +92,7 @@ export async function batchCreateIssues(
 export async function updateIssue(
 	db: DrizzleD1Database,
 	id: number,
-	data: UpdateIssueData
+	data: UpdateIssueData,
 ) {
 	const result = await db
 		.update(issues)
@@ -102,32 +112,29 @@ export async function updateIssue(
 export async function batchFindIssuesByNumbers(
 	db: DrizzleD1Database,
 	repoId: number,
-	issueNumbers: number[]
+	issueNumbers: number[],
 ): Promise<Map<number, typeof issues.$inferSelect>> {
 	if (issueNumbers.length === 0) return new Map();
-	
+
 	const results = await db
 		.select()
 		.from(issues)
 		.where(eq(issues.repoId, repoId));
-	
+
 	const issueMap = new Map<number, typeof issues.$inferSelect>();
 	for (const issue of results) {
 		if (issueNumbers.includes(issue.githubIssueNumber)) {
 			issueMap.set(issue.githubIssueNumber, issue);
 		}
 	}
-	
+
 	return issueMap;
 }
 
 /**
  * Get all issues for a repo
  */
-export async function getIssuesByRepoId(
-	db: DrizzleD1Database,
-	repoId: number
-) {
+export async function getIssuesByRepoId(db: DrizzleD1Database, repoId: number) {
 	return db.select().from(issues).where(eq(issues.repoId, repoId));
 }
 
@@ -156,7 +163,7 @@ export async function getOpenIssues(db: DrizzleD1Database) {
  */
 export async function getOpenIssuesByRepoId(
 	db: DrizzleD1Database,
-	repoId: number
+	repoId: number,
 ) {
 	return db
 		.select()
@@ -170,7 +177,7 @@ export async function getOpenIssuesByRepoId(
 export async function getIssuesByStatus(
 	db: DrizzleD1Database,
 	status: string,
-	limit: number
+	limit: number,
 ) {
 	return db
 		.select()
@@ -187,7 +194,7 @@ export async function updateIssueProcessingStatus(
 	db: DrizzleD1Database,
 	id: number,
 	status: string,
-	processedAt?: Date
+	processedAt?: Date,
 ) {
 	const result = await db
 		.update(issues)
@@ -222,15 +229,23 @@ export async function getRecommendedIssues(
 	db: DrizzleD1Database,
 	preferredLanguages: string[],
 	difficultyPreference: number,
-	limit: number = 20
+	limit: number = 20,
 ): Promise<RecommendedIssue[]> {
 	try {
-		const difficultyRange = { min: difficultyPreference - 1, max: difficultyPreference + 1 };
+		const difficultyRange = {
+			min: difficultyPreference - 1,
+			max: difficultyPreference + 1,
+		};
 
 		// Build language filter conditions
-		const languageConditions = preferredLanguages.length > 0
-			? or(...preferredLanguages.map(lang => like(repos.languagesOrdered, `%${lang}%`)))
-			: sql`1=1`;
+		const languageConditions =
+			preferredLanguages.length > 0
+				? or(
+						...preferredLanguages.map((lang) =>
+							like(repos.languagesOrdered, `%${lang}%`),
+						),
+					)
+				: sql`1=1`;
 
 		const result = await db
 			.select({
@@ -252,18 +267,22 @@ export async function getRecommendedIssues(
 				aiSummaries,
 				and(
 					eq(aiSummaries.entityType, "issue"),
-					eq(aiSummaries.entityId, issues.id)
-				)
+					eq(aiSummaries.entityId, issues.id),
+				),
 			)
 			.where(
 				and(
 					eq(issues.state, "open"),
 					languageConditions,
 					or(
-						between(aiSummaries.difficultyScore, difficultyRange.min, difficultyRange.max),
-						isNull(aiSummaries.difficultyScore)
-					)
-				)
+						between(
+							aiSummaries.difficultyScore,
+							difficultyRange.min,
+							difficultyRange.max,
+						),
+						isNull(aiSummaries.difficultyScore),
+					),
+				),
 			)
 			.orderBy(desc(issues.updatedAt))
 			.limit(limit);
@@ -286,4 +305,3 @@ export async function getRecommendedIssues(
 		throw error;
 	}
 }
-

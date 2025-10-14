@@ -3,8 +3,14 @@
 // export dynamically through wrangler, or we can potentially let users directly
 // add them as a sort of "plugin" system.
 
-import ENTRY, { __INTERNAL_WRANGLER_MIDDLEWARE__ } from "/Users/rossoc1/Desktop/contribot/apps/user-application/.wrangler/tmp/bundle-1TJeH6/middleware-insertion-facade.js";
-import { __facade_invoke__, __facade_register__, Dispatcher } from "/Users/rossoc1/Desktop/contribot/node_modules/.pnpm/wrangler@4.40.1_@cloudflare+workers-types@4.20250823.0/node_modules/wrangler/templates/middleware/common.ts";
+import ENTRY, {
+	__INTERNAL_WRANGLER_MIDDLEWARE__,
+} from "/Users/rossoc1/Desktop/contribot/apps/user-application/.wrangler/tmp/bundle-1TJeH6/middleware-insertion-facade.js";
+import {
+	__facade_invoke__,
+	__facade_register__,
+	Dispatcher,
+} from "/Users/rossoc1/Desktop/contribot/node_modules/.pnpm/wrangler@4.40.1_@cloudflare+workers-types@4.20250823.0/node_modules/wrangler/templates/middleware/common.ts";
 import type { WorkerEntrypointConstructor } from "/Users/rossoc1/Desktop/contribot/apps/user-application/.wrangler/tmp/bundle-1TJeH6/middleware-insertion-facade.js";
 
 // Preserve all the exports from the worker
@@ -16,7 +22,7 @@ class __Facade_ScheduledController__ implements ScheduledController {
 	constructor(
 		readonly scheduledTime: number,
 		readonly cron: string,
-		noRetry: ScheduledController["noRetry"]
+		noRetry: ScheduledController["noRetry"],
 	) {
 		this.#noRetry = noRetry;
 	}
@@ -46,7 +52,7 @@ function wrapExportedHandler(worker: ExportedHandler): ExportedHandler {
 	const fetchDispatcher: ExportedHandlerFetchHandler = function (
 		request,
 		env,
-		ctx
+		ctx,
 	) {
 		if (worker.fetch === undefined) {
 			throw new Error("Handler does not export a fetch() function.");
@@ -62,7 +68,7 @@ function wrapExportedHandler(worker: ExportedHandler): ExportedHandler {
 					const controller = new __Facade_ScheduledController__(
 						Date.now(),
 						init.cron ?? "",
-						() => {}
+						() => {},
 					);
 					return worker.scheduled(controller, env, ctx);
 				}
@@ -73,7 +79,7 @@ function wrapExportedHandler(worker: ExportedHandler): ExportedHandler {
 }
 
 function wrapWorkerEntrypoint(
-	klass: WorkerEntrypointConstructor
+	klass: WorkerEntrypointConstructor,
 ): WorkerEntrypointConstructor {
 	// If we don't have any middleware defined, just return the handler as is
 	if (
@@ -92,7 +98,7 @@ function wrapWorkerEntrypoint(
 		#fetchDispatcher: ExportedHandlerFetchHandler<Record<string, unknown>> = (
 			request,
 			env,
-			ctx
+			ctx,
 		) => {
 			this.env = env;
 			this.ctx = ctx;
@@ -107,7 +113,7 @@ function wrapWorkerEntrypoint(
 				const controller = new __Facade_ScheduledController__(
 					Date.now(),
 					init.cron ?? "",
-					() => {}
+					() => {},
 				);
 				return super.scheduled(controller);
 			}
@@ -119,7 +125,7 @@ function wrapWorkerEntrypoint(
 				this.env,
 				this.ctx,
 				this.#dispatcher,
-				this.#fetchDispatcher
+				this.#fetchDispatcher,
 			);
 		}
 	};

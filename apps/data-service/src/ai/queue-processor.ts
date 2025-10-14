@@ -34,10 +34,10 @@ const MAX_PROCESSING_TIME_MS = 60 * 60 * 1000; // 1 h
 export async function processAiQueueBatch(
 	db: DrizzleD1Database,
 	ai: Ai,
-	batchSize: number = BATCH_SIZE
+	batchSize: number = BATCH_SIZE,
 ): Promise<{ stats: AiQueueStats; hasMore: boolean }> {
 	const summarizer = new AiSummarizer(ai);
-	
+
 	const stats: AiQueueStats = {
 		processed: 0,
 		success: 0,
@@ -47,7 +47,7 @@ export async function processAiQueueBatch(
 
 	// Fetch next batch
 	const queueItems = await getPendingQueueItems(db as any, batchSize);
-	
+
 	if (queueItems.length === 0) {
 		console.log("AI queue is empty");
 		return { stats, hasMore: false };
@@ -59,7 +59,7 @@ export async function processAiQueueBatch(
 	for (const item of queueItems) {
 		try {
 			console.log(`  Processing ${item.entityType} ${item.entityId}...`);
-			
+
 			// Mark as processing
 			await markQueueItemProcessing(db as any, item.id);
 
@@ -74,26 +74,27 @@ export async function processAiQueueBatch(
 
 			// Mark as completed
 			await completeQueueItem(db as any, item.id);
-			
+
 			stats.processed++;
 			stats.success++;
 			console.log(`  ✓ Completed ${item.entityType} ${item.entityId}`);
 		} catch (error) {
 			console.error(`  ✗ Failed ${item.entityType} ${item.entityId}:`, error);
-			
+
 			const attempts = item.attempts + 1;
-			const errorMessage = error instanceof Error ? error.message : String(error);
-			
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+
 			// Try to mark as failed, but don't let this failure stop processing
 			try {
 				await failQueueItem(db as any, item.id, errorMessage, attempts);
 			} catch (failError) {
 				console.error(`  ✗✗ Could not mark item as failed:`, failError);
 			}
-			
+
 			stats.processed++;
 			stats.failed++;
-			
+
 			// Continue to next item regardless of error
 			continue;
 		}
@@ -106,7 +107,9 @@ export async function processAiQueueBatch(
 	// Get remaining queue count
 	try {
 		const queueStatsResult = await getQueueStats(db as any);
-		const pendingCount = queueStatsResult.find((s: { status: string; count: number }) => s.status === "pending");
+		const pendingCount = queueStatsResult.find(
+			(s: { status: string; count: number }) => s.status === "pending",
+		);
 		stats.remaining = pendingCount ? pendingCount.count : 0;
 	} catch (error) {
 		console.error("Failed to get queue stats:", error);
@@ -119,11 +122,11 @@ export async function processAiQueueBatch(
 
 export async function processAiQueue(
 	db: DrizzleD1Database,
-	ai: Ai
+	ai: Ai,
 ): Promise<AiQueueStats> {
 	const summarizer = new AiSummarizer(ai);
 	const startTime = Date.now();
-	
+
 	const stats: AiQueueStats = {
 		processed: 0,
 		success: 0,
@@ -142,7 +145,7 @@ export async function processAiQueue(
 
 		// Fetch next batch
 		const queueItems = await getPendingQueueItems(db as any, BATCH_SIZE);
-		
+
 		if (queueItems.length === 0) {
 			console.log("AI queue is empty");
 			break;
@@ -154,7 +157,7 @@ export async function processAiQueue(
 		for (const item of queueItems) {
 			try {
 				console.log(`  Processing ${item.entityType} ${item.entityId}...`);
-				
+
 				// Mark as processing
 				await markQueueItemProcessing(db as any, item.id);
 
@@ -169,26 +172,27 @@ export async function processAiQueue(
 
 				// Mark as completed
 				await completeQueueItem(db as any, item.id);
-				
+
 				stats.processed++;
 				stats.success++;
 				console.log(`  ✓ Completed ${item.entityType} ${item.entityId}`);
 			} catch (error) {
 				console.error(`  ✗ Failed ${item.entityType} ${item.entityId}:`, error);
-				
+
 				const attempts = item.attempts + 1;
-				const errorMessage = error instanceof Error ? error.message : String(error);
-				
+				const errorMessage =
+					error instanceof Error ? error.message : String(error);
+
 				// Try to mark as failed, but don't let this failure stop processing
 				try {
 					await failQueueItem(db as any, item.id, errorMessage, attempts);
 				} catch (failError) {
 					console.error(`  ✗✗ Could not mark item as failed:`, failError);
 				}
-				
+
 				stats.processed++;
 				stats.failed++;
-				
+
 				// Continue to next item regardless of error
 				continue;
 			}
@@ -198,7 +202,9 @@ export async function processAiQueue(
 	// Get remaining queue count
 	try {
 		const queueStatsResult = await getQueueStats(db as any);
-		const pendingCount = queueStatsResult.find((s: { status: string; count: number }) => s.status === "pending");
+		const pendingCount = queueStatsResult.find(
+			(s: { status: string; count: number }) => s.status === "pending",
+		);
 		stats.remaining = pendingCount ? pendingCount.count : 0;
 	} catch (error) {
 		console.error("Failed to get queue stats:", error);
@@ -212,7 +218,7 @@ export async function processAiQueue(
 async function processRepoSummary(
 	db: DrizzleD1Database,
 	summarizer: AiSummarizer,
-	queueItem: { id: number; entityType: string; entityId: number }
+	queueItem: { id: number; entityType: string; entityId: number },
 ) {
 	// Fetch repo data
 	const repo = await getRepoById(db as any, queueItem.entityId);
@@ -224,7 +230,7 @@ async function processRepoSummary(
 	const result = await summarizer.summarizeRepo(
 		repo.owner,
 		repo.name,
-		repo.languagesOrdered as string[]
+		repo.languagesOrdered as string[],
 	);
 
 	// Store summary
@@ -234,7 +240,7 @@ async function processRepoSummary(
 async function processIssueSummary(
 	db: DrizzleD1Database,
 	summarizer: AiSummarizer,
-	queueItem: { id: number; entityType: string; entityId: number }
+	queueItem: { id: number; entityType: string; entityId: number },
 ) {
 	// Fetch issue data
 	const issue = await getIssueById(db as any, queueItem.entityId);
@@ -253,7 +259,7 @@ async function processIssueSummary(
 		repo.owner,
 		repo.name,
 		issue.title,
-		issue.body
+		issue.body,
 	);
 
 	// Store summary
@@ -263,4 +269,3 @@ async function processIssueSummary(
 		firstSteps: result.firstSteps,
 	});
 }
-

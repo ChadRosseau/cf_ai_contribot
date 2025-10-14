@@ -39,11 +39,14 @@ export class GitHubApiClient {
 		}
 
 		// Check if we're approaching the limit
-		if (this.rateLimitState.requestsThisHour >= this.MAX_REQUESTS_PER_HOUR - 100) {
+		if (
+			this.rateLimitState.requestsThisHour >=
+			this.MAX_REQUESTS_PER_HOUR - 100
+		) {
 			// Wait until next hour
 			const timeUntilNextHour = 3600000 - hourElapsed;
 			console.warn(
-				`Rate limit approaching. Waiting ${timeUntilNextHour}ms until next hour`
+				`Rate limit approaching. Waiting ${timeUntilNextHour}ms until next hour`,
 			);
 			return timeUntilNextHour;
 		}
@@ -60,10 +63,7 @@ export class GitHubApiClient {
 	/**
 	 * Make a rate-limited request to GitHub API
 	 */
-	private async request<T>(
-		endpoint: string,
-		retries = 3
-	): Promise<T> {
+	private async request<T>(endpoint: string, retries = 3): Promise<T> {
 		// Check rate limit and wait if necessary
 		const delayMs = this.checkRateLimit();
 		if (delayMs > 0) {
@@ -99,7 +99,7 @@ export class GitHubApiClient {
 				const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 60000;
 				console.warn(`Rate limit exceeded. Waiting ${waitTime}ms`);
 				await new Promise((resolve) => setTimeout(resolve, waitTime));
-				
+
 				if (retries > 0) {
 					return this.request<T>(endpoint, retries - 1);
 				}
@@ -110,8 +110,11 @@ export class GitHubApiClient {
 			if (!response.ok) {
 				// Log detailed error information
 				const errorBody = await response.text();
-				console.error(`GitHub API Error Response (${response.status}):`, errorBody);
-				
+				console.error(
+					`GitHub API Error Response (${response.status}):`,
+					errorBody,
+				);
+
 				if (response.status === 404) {
 					throw new Error(`Not found: ${endpoint}`);
 				}
@@ -122,7 +125,9 @@ export class GitHubApiClient {
 					console.error("  3. Rate limit exceeded (different from 429)");
 					throw new Error(`Forbidden: Check token validity`);
 				}
-				throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorBody}`);
+				throw new Error(
+					`GitHub API error: ${response.status} ${response.statusText} - ${errorBody}`,
+				);
 			}
 
 			return await response.json();
@@ -130,7 +135,9 @@ export class GitHubApiClient {
 			// Retry on network errors
 			if (retries > 0 && error instanceof TypeError) {
 				console.warn(`Network error, retrying... (${retries} attempts left)`);
-				await new Promise((resolve) => setTimeout(resolve, 1000 * (4 - retries)));
+				await new Promise((resolve) =>
+					setTimeout(resolve, 1000 * (4 - retries)),
+				);
 				return this.request<T>(endpoint, retries - 1);
 			}
 			throw error;
@@ -143,14 +150,14 @@ export class GitHubApiClient {
 	 */
 	async fetchRepoLanguages(
 		owner: string,
-		name: string
+		name: string,
 	): Promise<{
 		raw: Record<string, number>;
 		ordered: string[];
 	}> {
 		try {
 			const languages = await this.request<Record<string, number>>(
-				`/repos/${owner}/${name}/languages`
+				`/repos/${owner}/${name}/languages`,
 			);
 
 			// Sort languages by bytes (descending) and extract names
@@ -178,10 +185,10 @@ export class GitHubApiClient {
 	async fetchIssue(
 		owner: string,
 		name: string,
-		issueNumber: number
+		issueNumber: number,
 	): Promise<GitHubIssue> {
 		return this.request<GitHubIssue>(
-			`/repos/${owner}/${name}/issues/${issueNumber}`
+			`/repos/${owner}/${name}/issues/${issueNumber}`,
 		);
 	}
 
@@ -192,11 +199,13 @@ export class GitHubApiClient {
 	async batchFetchIssues(
 		owner: string,
 		name: string,
-		issueNumbers: number[]
+		issueNumbers: number[],
 	): Promise<Map<number, GitHubIssue>> {
 		const issueMap = new Map<number, GitHubIssue>();
 
-		console.log(`Batch fetching ${issueNumbers.length} issues to verify status...`);
+		console.log(
+			`Batch fetching ${issueNumbers.length} issues to verify status...`,
+		);
 
 		// Fetch issues one by one (GitHub API doesn't have a batch endpoint for this)
 		// But we can do this efficiently with proper rate limiting
@@ -222,13 +231,13 @@ export class GitHubApiClient {
 		label: string,
 		state: "open" | "closed" | "all" = "open",
 		page = 1,
-		perPage = 100
+		perPage = 100,
 	): Promise<GitHubIssue[]> {
 		try {
 			const issues = await this.request<GitHubIssue[]>(
 				`/repos/${owner}/${name}/issues?labels=${encodeURIComponent(
-					label
-				)}&state=${state}&page=${page}&per_page=${perPage}`
+					label,
+				)}&state=${state}&page=${page}&per_page=${perPage}`,
 			);
 
 			return issues;
@@ -245,25 +254,32 @@ export class GitHubApiClient {
 		owner: string,
 		name: string,
 		label: string,
-		state: "open" | "closed" | "all" = "open"
+		state: "open" | "closed" | "all" = "open",
 	): Promise<GitHubIssue[]> {
 		const allIssues: GitHubIssue[] = [];
 		let page = 1;
 		let hasMore = true;
 
 		while (hasMore) {
-			const issues = await this.fetchIssues(owner, name, label, state, page, 100);
-			
+			const issues = await this.fetchIssues(
+				owner,
+				name,
+				label,
+				state,
+				page,
+				100,
+			);
+
 			if (issues.length === 0) {
 				hasMore = false;
 			} else {
 				allIssues.push(...issues);
 				page++;
-				
+
 				// Safety limit: max 100 pages (10,000 issues)
 				if (page > 100) {
 					console.warn(
-						`Reached pagination limit for ${owner}/${name}. Some issues may be missing.`
+						`Reached pagination limit for ${owner}/${name}. Some issues may be missing.`,
 					);
 					hasMore = false;
 				}
@@ -280,7 +296,8 @@ export class GitHubApiClient {
 		return {
 			made: this.rateLimitState.requestsThisHour,
 			requestsThisHour: this.rateLimitState.requestsThisHour,
-			remaining: this.MAX_REQUESTS_PER_HOUR - this.rateLimitState.requestsThisHour,
+			remaining:
+				this.MAX_REQUESTS_PER_HOUR - this.rateLimitState.requestsThisHour,
 			maxPerHour: this.MAX_REQUESTS_PER_HOUR,
 		};
 	}
@@ -299,4 +316,3 @@ export interface GitHubIssue {
 	html_url: string;
 	pull_request?: unknown; // Issues with this field are actually PRs
 }
-

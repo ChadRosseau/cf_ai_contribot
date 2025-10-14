@@ -33,7 +33,7 @@ export interface UpdateRepoData {
 export async function findRepoByOwnerName(
 	db: DrizzleD1Database,
 	owner: string,
-	name: string
+	name: string,
 ) {
 	const results = await db
 		.select()
@@ -49,7 +49,7 @@ export async function findRepoByOwnerName(
  */
 export async function findRepoByHash(
 	db: DrizzleD1Database,
-	metadataHash: string
+	metadataHash: string,
 ) {
 	const results = await db
 		.select()
@@ -63,10 +63,7 @@ export async function findRepoByHash(
 /**
  * Create a new repo
  */
-export async function createRepo(
-	db: DrizzleD1Database,
-	data: CreateRepoData
-) {
+export async function createRepo(db: DrizzleD1Database, data: CreateRepoData) {
 	const result = await db.insert(repos).values(data).returning();
 	return result[0];
 }
@@ -82,7 +79,7 @@ export const insertRepo = createRepo;
 export async function updateRepo(
 	db: DrizzleD1Database,
 	id: number,
-	data: UpdateRepoData
+	data: UpdateRepoData,
 ) {
 	const result = await db
 		.update(repos)
@@ -119,7 +116,7 @@ export async function getRepoById(db: DrizzleD1Database, id: number) {
 export async function getReposByStatus(
 	db: DrizzleD1Database,
 	status: string,
-	limit: number
+	limit: number,
 ) {
 	return db
 		.select()
@@ -136,7 +133,7 @@ export async function updateRepoProcessingStatus(
 	db: DrizzleD1Database,
 	id: number,
 	status: string,
-	processedAt?: Date
+	processedAt?: Date,
 ) {
 	const result = await db
 		.update(repos)
@@ -149,4 +146,3 @@ export async function updateRepoProcessingStatus(
 
 	return result[0];
 }
-

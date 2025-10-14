@@ -54,17 +54,24 @@ export class RepoProcessor {
 			try {
 				await this.processRepo(repo);
 			} catch (error) {
-				console.error(`Error processing repo ${repo.owner}/${repo.name}:`, error);
-				
+				console.error(
+					`Error processing repo ${repo.owner}/${repo.name}:`,
+					error,
+				);
+
 				// Check if it's a 403 Forbidden error
 				if (error instanceof Error && error.message.includes("Forbidden")) {
 					console.error("❌ GitHub API returned 403 Forbidden - Invalid token");
-					console.error("⛔ Stopping all processing to avoid wasting rate limits");
+					console.error(
+						"⛔ Stopping all processing to avoid wasting rate limits",
+					);
 					this.authFailed = true;
 					this.stats.errors++;
-					throw new Error("GitHub authentication failed: Invalid or expired token. Please check GITHUB_SCRAPER_TOKEN");
+					throw new Error(
+						"GitHub authentication failed: Invalid or expired token. Please check GITHUB_SCRAPER_TOKEN",
+					);
 				}
-				
+
 				this.stats.errors++;
 			}
 		}
@@ -80,18 +87,18 @@ export class RepoProcessor {
 		const existingRepo = await findRepoByOwnerName(
 			this.db,
 			repoData.owner,
-			repoData.name
+			repoData.name,
 		);
 
 		// Fetch languages from GitHub API
 		const languages = await this.githubClient.fetchRepoLanguages(
 			repoData.owner,
-			repoData.name
+			repoData.name,
 		);
 
 		if (languages.ordered.length === 0) {
 			console.warn(
-				`No languages found for ${repoData.owner}/${repoData.name}, skipping`
+				`No languages found for ${repoData.owner}/${repoData.name}, skipping`,
 			);
 			this.stats.errors++;
 			return;
@@ -102,7 +109,7 @@ export class RepoProcessor {
 			repoData.owner,
 			repoData.name,
 			languages.ordered,
-			repoData.goodFirstIssueTag
+			repoData.goodFirstIssueTag,
 		);
 
 		const githubUrl = `https://github.com/${repoData.owner}/${repoData.name}`;
@@ -136,13 +143,13 @@ export class RepoProcessor {
 
 				this.stats.updated++;
 				console.log(
-					`✓ Updated repo: ${repoData.owner}/${repoData.name} (hash changed)`
+					`✓ Updated repo: ${repoData.owner}/${repoData.name} (hash changed)`,
 				);
 			} else {
 				// Hash unchanged - skip
 				this.stats.unchanged++;
 				console.log(
-					`- Skipped repo: ${repoData.owner}/${repoData.name} (no changes)`
+					`- Skipped repo: ${repoData.owner}/${repoData.name} (no changes)`,
 				);
 			}
 		}
@@ -158,7 +165,7 @@ export class RepoProcessor {
 
 	private async updateExistingRepo(
 		id: number,
-		data: UpdateRepoData
+		data: UpdateRepoData,
 	): Promise<void> {
 		await updateRepo(this.db, id, data);
 
@@ -171,4 +178,3 @@ export class RepoProcessor {
 		return this.stats;
 	}
 }
-

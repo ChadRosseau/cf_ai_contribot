@@ -14,7 +14,8 @@ app.get("/", (c) => {
 	return c.json({
 		service: "contribot-scraper-service (Discovery Service)",
 		version: "2.0.0",
-		description: "Discovers repos from data sources and queues them for processing",
+		description:
+			"Discovers repos from data sources and queues them for processing",
 		endpoints: {
 			trigger: "POST /trigger - Manually trigger discovery run",
 			health: "GET /health - Health check",
@@ -37,7 +38,7 @@ app.post("/trigger", async (c) => {
 		c.env.WORKFLOW_LOGS,
 		loggingEnabled,
 		runId,
-		"discovery-service"
+		"discovery-service",
 	);
 	const logger = new WorkflowLogger(r2Logger);
 
@@ -75,7 +76,7 @@ app.post("/trigger", async (c) => {
 					runId,
 					message: "GitHub authentication failed. Please check your token.",
 				},
-				401
+				401,
 			);
 		}
 
@@ -86,7 +87,7 @@ app.post("/trigger", async (c) => {
 				runId,
 				message: "Discovery run failed. Check R2 logs for details.",
 			},
-			500
+			500,
 		);
 	}
 });
@@ -95,7 +96,7 @@ app.post("/trigger", async (c) => {
 const scheduled: ExportedHandlerScheduledHandler<Env> = async (
 	controller,
 	env,
-	ctx
+	ctx,
 ) => {
 	console.log("=== Cron Triggered: Discovery Service ===");
 	console.log("Time:", new Date().toISOString());
@@ -108,7 +109,7 @@ const scheduled: ExportedHandlerScheduledHandler<Env> = async (
 		env.WORKFLOW_LOGS,
 		loggingEnabled,
 		runId,
-		"discovery-service"
+		"discovery-service",
 	);
 	const logger = new WorkflowLogger(r2Logger);
 
@@ -117,7 +118,7 @@ const scheduled: ExportedHandlerScheduledHandler<Env> = async (
 	try {
 		console.log("Starting discovery run...");
 		const stats = await runDiscovery(env);
-		
+
 		console.log("\n=== Discovery Run Complete ===");
 		console.log("Stats:", stats);
 
@@ -125,8 +126,11 @@ const scheduled: ExportedHandlerScheduledHandler<Env> = async (
 		logger.stopCapture();
 		await logger.flush();
 	} catch (error) {
-		console.error("❌ Discovery run failed:", error instanceof Error ? error.message : String(error));
-		
+		console.error(
+			"❌ Discovery run failed:",
+			error instanceof Error ? error.message : String(error),
+		);
+
 		// Flush logs even on error
 		logger.stopCapture();
 		await logger.flush();
@@ -140,4 +144,3 @@ export default {
 	fetch: app.fetch,
 	scheduled,
 };
-

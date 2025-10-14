@@ -19,7 +19,11 @@ export class R2Logger {
 	private logs: LogEntry[] = [];
 	private currentStep: string = "init";
 
-	constructor(bucket: R2Bucket | null | undefined, enabled: boolean, runId: string) {
+	constructor(
+		bucket: R2Bucket | null | undefined,
+		enabled: boolean,
+		runId: string,
+	) {
 		this.bucket = bucket || null;
 		this.enabled = enabled && this.bucket !== null;
 		this.runId = runId;
@@ -95,4 +99,3 @@ export class R2Logger {
 		this.logs = [];
 	}
 }
-

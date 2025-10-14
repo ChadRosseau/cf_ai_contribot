@@ -1,10 +1,10 @@
 /**
  * ⚠️ DEPRECATED - DO NOT USE ⚠️
- * 
+ *
  * This file is no longer used in the new architecture.
  * The aiSummaryQueue table has been removed.
  * Use ai-summaries.ts instead.
- * 
+ *
  * This file will be deleted after migration is verified.
  * All functions below are stubs to prevent build errors.
  */
@@ -36,29 +36,31 @@ export async function enqueueIssue(db: DrizzleD1Database, issueId: number) {
 
 export async function enqueueForAISummary(
 	db: DrizzleD1Database,
-	data: CreateQueueItemData
+	data: CreateQueueItemData,
 ) {
-	throw new Error("DEPRECATED: enqueueForAISummary - use queue messages instead");
+	throw new Error(
+		"DEPRECATED: enqueueForAISummary - use queue messages instead",
+	);
 }
 
 export async function findQueueItem(
 	db: DrizzleD1Database,
 	entityType: string,
-	entityId: number
+	entityId: number,
 ) {
 	throw new Error("DEPRECATED: findQueueItem - no longer used");
 }
 
 export async function getPendingQueueItems(
 	db: DrizzleD1Database,
-	limit: number = 10
+	limit: number = 10,
 ) {
 	throw new Error("DEPRECATED: getPendingQueueItems - no longer used");
 }
 
 export async function markQueueItemProcessing(
 	db: DrizzleD1Database,
-	id: number
+	id: number,
 ) {
 	throw new Error("DEPRECATED: markQueueItemProcessing - no longer used");
 }
@@ -71,12 +73,15 @@ export async function failQueueItem(
 	db: DrizzleD1Database,
 	id: number,
 	errorMessage: string,
-	attempts: number
+	attempts: number,
 ) {
 	throw new Error("DEPRECATED: failQueueItem - no longer used");
 }
 
-export async function resetStuckItems(db: DrizzleD1Database, timeoutMs: number) {
+export async function resetStuckItems(
+	db: DrizzleD1Database,
+	timeoutMs: number,
+) {
 	throw new Error("DEPRECATED: resetStuckItems - no longer used");
 }
 
@@ -87,7 +92,7 @@ export async function getQueueStats(db: DrizzleD1Database) {
 export async function storeRepoSummary(
 	db: DrizzleD1Database,
 	repoId: number,
-	summary: string
+	summary: string,
 ) {
 	throw new Error("DEPRECATED: storeRepoSummary - use ai-summaries.ts instead");
 }
@@ -99,7 +104,9 @@ export async function storeIssueSummary(
 		issueIntro: string;
 		difficultyScore: number;
 		firstSteps: string;
-	}
+	},
 ) {
-	throw new Error("DEPRECATED: storeIssueSummary - use ai-summaries.ts instead");
+	throw new Error(
+		"DEPRECATED: storeIssueSummary - use ai-summaries.ts instead",
+	);
 }

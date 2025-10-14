@@ -15,7 +15,7 @@ export class GitHubApiClient {
 	private async request<T>(
 		path: string,
 		method: string = "GET",
-		body?: Record<string, unknown>
+		body?: Record<string, unknown>,
 	): Promise<T> {
 		const response = await fetch(`${this.baseUrl}${path}`, {
 			method,
@@ -23,7 +23,7 @@ export class GitHubApiClient {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${this.accessToken}`,
 				Accept: "application/vnd.github+json",
-                "User-Agent": "Contribot-Agent/1.0",
+				"User-Agent": "Contribot-Agent/1.0",
 			},
 			body: body ? JSON.stringify(body) : undefined,
 		});
@@ -38,9 +38,12 @@ export class GitHubApiClient {
 
 	async forkRepository(
 		owner: string,
-		repo: string
+		repo: string,
 	): Promise<{ owner: string; name: string; url: string }> {
-		const result = await this.request<any>(`/repos/${owner}/${repo}/forks`, "POST");
+		const result = await this.request<any>(
+			`/repos/${owner}/${repo}/forks`,
+			"POST",
+		);
 		return {
 			owner: result.owner.login,
 			name: result.name,
@@ -52,10 +55,10 @@ export class GitHubApiClient {
 		owner: string,
 		repo: string,
 		branchName: string,
-		fromBranch: string = "main"
+		fromBranch: string = "main",
 	): Promise<{ name: string; sha: string }> {
 		const ref = await this.request<any>(
-			`/repos/${owner}/${repo}/git/ref/heads/${fromBranch}`
+			`/repos/${owner}/${repo}/git/ref/heads/${fromBranch}`,
 		);
 
 		const newRef = await this.request<any>(
@@ -64,7 +67,7 @@ export class GitHubApiClient {
 			{
 				ref: `refs/heads/${branchName}`,
 				sha: ref.object.sha,
-			}
+			},
 		);
 
 		return {
@@ -77,12 +80,12 @@ export class GitHubApiClient {
 		owner: string,
 		repo: string,
 		issueNumber: number,
-		body: string
+		body: string,
 	): Promise<{ id: number; url: string }> {
 		const result = await this.request<any>(
 			`/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
 			"POST",
-			{ body }
+			{ body },
 		);
 		return {
 			id: result.id,
@@ -90,27 +93,34 @@ export class GitHubApiClient {
 		};
 	}
 
-    async listUserRepositories(options?: {
-        visibility?: "all" | "public" | "private";
-        sort?: "created" | "updated" | "pushed" | "full_name";
-        perPage?: number;
-    }): Promise<
-        Array<{ name: string; owner: string; fullName: string; language: string | null }>
-    > {
-        const params = new URLSearchParams({
-            visibility: options?.visibility || "all",
-            sort: options?.sort || "updated",
-            per_page: String(options?.perPage || 30),
-            affiliation: "owner",
-        });
-        const result = await this.request<any[]>(`/user/repos?${params.toString()}`);
-        return result.map((repo) => ({
-            name: repo.name,
-            owner: repo.owner.login,
-            fullName: repo.full_name,
-            language: repo.language,
-        }));
-    }
+	async listUserRepositories(options?: {
+		visibility?: "all" | "public" | "private";
+		sort?: "created" | "updated" | "pushed" | "full_name";
+		perPage?: number;
+	}): Promise<
+		Array<{
+			name: string;
+			owner: string;
+			fullName: string;
+			language: string | null;
+		}>
+	> {
+		const params = new URLSearchParams({
+			visibility: options?.visibility || "all",
+			sort: options?.sort || "updated",
+			per_page: String(options?.perPage || 30),
+			affiliation: "owner",
+		});
+		const result = await this.request<any[]>(
+			`/user/repos?${params.toString()}`,
+		);
+		return result.map((repo) => ({
+			name: repo.name,
+			owner: repo.owner.login,
+			fullName: repo.full_name,
+			language: repo.language,
+		}));
+	}
 
 	async getAuthenticatedUser(): Promise<{
 		login: string;
@@ -133,7 +143,7 @@ export class GitHubApiClient {
 		title: string,
 		head: string,
 		base: string,
-		body?: string
+		body?: string,
 	): Promise<{ number: number; url: string; state: string }> {
 		const result = await this.request<any>(
 			`/repos/${owner}/${repo}/pulls`,
@@ -143,7 +153,7 @@ export class GitHubApiClient {
 				head,
 				base,
 				body,
-			}
+			},
 		);
 		return {
 			number: result.number,
@@ -155,10 +165,12 @@ export class GitHubApiClient {
 	async listPullRequests(
 		owner: string,
 		repo: string,
-		state: "open" | "closed" | "all" = "open"
-	): Promise<Array<{ number: number; title: string; state: string; url: string }>> {
+		state: "open" | "closed" | "all" = "open",
+	): Promise<
+		Array<{ number: number; title: string; state: string; url: string }>
+	> {
 		const result = await this.request<any[]>(
-			`/repos/${owner}/${repo}/pulls?state=${state}`
+			`/repos/${owner}/${repo}/pulls?state=${state}`,
 		);
 		return result.map((pr) => ({
 			number: pr.number,

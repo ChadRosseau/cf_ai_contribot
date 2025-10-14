@@ -26,17 +26,17 @@ export class AwesomeForBeginnersAdapter implements ScraperAdapter {
 	async fetch(url: string): Promise<RepoSourceData[]> {
 		try {
 			console.log(`Fetching data from ${url}`);
-			
+
 			const response = await fetch(url);
-			
+
 			if (!response.ok) {
 				throw new Error(
-					`Failed to fetch data: ${response.status} ${response.statusText}`
+					`Failed to fetch data: ${response.status} ${response.statusText}`,
 				);
 			}
 
 			const data = (await response.json()) as AwesomeData;
-			
+
 			return this.parseData(data);
 		} catch (error) {
 			console.error("Error fetching awesome-for-beginners data:", error);
@@ -86,4 +86,3 @@ export class AwesomeForBeginnersAdapter implements ScraperAdapter {
 		};
 	}
 }
-

@@ -6,7 +6,10 @@
 import { DurableObject } from "cloudflare:workers";
 import { GitHubApiClient } from "../api/github-client";
 import { initDatabase } from "@repo/data-ops/database/setup";
-import { getUserPreferences, getUserGitHubTokens } from "@repo/data-ops/queries/users";
+import {
+	getUserPreferences,
+	getUserGitHubTokens,
+} from "@repo/data-ops/queries/users";
 
 interface AgentState {
 	userId: string;
@@ -39,7 +42,7 @@ export class ContribotAgent extends DurableObject {
 
 	async initialize(userId: string): Promise<void> {
 		const stored = await this.ctx.storage.get<AgentState>("state");
-		
+
 		if (stored) {
 			this.state = stored;
 		} else {
@@ -68,16 +71,14 @@ export class ContribotAgent extends DurableObject {
 			throw new Error("GitHub tokens not found for user");
 		}
 
-        console.log("Tokens:", tokens);
+		console.log("Tokens:", tokens);
 
-		this.mcpClient = new GitHubApiClient(
-			tokens.accessToken
-		);
+		this.mcpClient = new GitHubApiClient(tokens.accessToken);
 	}
 
 	private async saveState(): Promise<void> {
 		if (!this.state) return;
-		
+
 		this.state.updatedAt = Date.now();
 		await this.ctx.storage.put("state", this.state);
 	}
@@ -99,18 +100,21 @@ export class ContribotAgent extends DurableObject {
 		const systemPrompt = await this.buildSystemPrompt();
 		const userContext = await this.buildUserContext();
 
-		const aiResponse = await this.env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-			messages: [
-				{ role: "system", content: systemPrompt },
-				{ role: "system", content: userContext },
-				...this.state.conversationHistory.slice(-10).map(msg => ({
-					role: msg.role,
-					content: msg.content,
-				})),
-			],
-			temperature: 0.7,
-			max_tokens: 800,
-		});
+		const aiResponse = await this.env.AI.run(
+			"@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+			{
+				messages: [
+					{ role: "system", content: systemPrompt },
+					{ role: "system", content: userContext },
+					...this.state.conversationHistory.slice(-10).map((msg) => ({
+						role: msg.role,
+						content: msg.content,
+					})),
+				],
+				temperature: 0.7,
+				max_tokens: 800,
+			},
+		);
 
 		const response = (aiResponse as { response: string }).response;
 
@@ -130,7 +134,10 @@ export class ContribotAgent extends DurableObject {
 		};
 	}
 
-	async forkRepository(owner: string, repo: string): Promise<{
+	async forkRepository(
+		owner: string,
+		repo: string,
+	): Promise<{
 		success: boolean;
 		forkedRepo: { owner: string; name: string; url: string };
 	}> {
@@ -159,7 +166,7 @@ export class ContribotAgent extends DurableObject {
 		owner: string,
 		repo: string,
 		branchName: string,
-		fromBranch?: string
+		fromBranch?: string,
 	): Promise<{
 		success: boolean;
 		branch: { name: string; sha: string };
@@ -168,7 +175,12 @@ export class ContribotAgent extends DurableObject {
 			throw new Error("MCP client not initialized");
 		}
 
-		const branch = await this.mcpClient.createBranch(owner, repo, branchName, fromBranch);
+		const branch = await this.mcpClient.createBranch(
+			owner,
+			repo,
+			branchName,
+			fromBranch,
+		);
 
 		if (this.state) {
 			this.state.currentContext = {
@@ -189,7 +201,7 @@ export class ContribotAgent extends DurableObject {
 		owner: string,
 		repo: string,
 		issueNumber: number,
-		comment: string
+		comment: string,
 	): Promise<{
 		success: boolean;
 		comment: { id: number; url: string };
@@ -198,7 +210,12 @@ export class ContribotAgent extends DurableObject {
 			throw new Error("MCP client not initialized");
 		}
 
-		const result = await this.mcpClient.createIssueComment(owner, repo, issueNumber, comment);
+		const result = await this.mcpClient.createIssueComment(
+			owner,
+			repo,
+			issueNumber,
+			comment,
+		);
 
 		if (this.state) {
 			this.state.currentContext = {
@@ -220,7 +237,7 @@ export class ContribotAgent extends DurableObject {
 		title: string,
 		head: string,
 		base: string,
-		body?: string
+		body?: string,
 	): Promise<{
 		success: boolean;
 		pullRequest: { number: number; url: string };
@@ -229,7 +246,14 @@ export class ContribotAgent extends DurableObject {
 			throw new Error("MCP client not initialized");
 		}
 
-		const pr = await this.mcpClient.createPullRequest(owner, repo, title, head, base, body);
+		const pr = await this.mcpClient.createPullRequest(
+			owner,
+			repo,
+			title,
+			head,
+			base,
+			body,
+		);
 
 		if (this.state) {
 			this.state.currentContext = {
@@ -245,11 +269,13 @@ export class ContribotAgent extends DurableObject {
 		};
 	}
 
-	async getUserRepositories(): Promise<Array<{
-		name: string;
-		owner: string;
-		language: string | null;
-	}>> {
+	async getUserRepositories(): Promise<
+		Array<{
+			name: string;
+			owner: string;
+			language: string | null;
+		}>
+	> {
 		if (!this.mcpClient) {
 			throw new Error("MCP client not initialized");
 		}
@@ -285,7 +311,7 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 		if (!this.state) return "";
 
 		const db = initDatabase(this.env.DB);
-		
+
 		const preferences = await getUserPreferences(db as any, this.state.userId);
 
 		let context = "User preferences:\n";
@@ -305,7 +331,9 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 		return context;
 	}
 
-	private extractSuggestedActions(response: string): Array<{ action: string; label: string }> {
+	private extractSuggestedActions(
+		response: string,
+	): Array<{ action: string; label: string }> {
 		const actions: Array<{ action: string; label: string }> = [];
 
 		if (response.toLowerCase().includes("fork")) {
@@ -317,7 +345,10 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 		if (response.toLowerCase().includes("comment")) {
 			actions.push({ action: "comment", label: "Add Comment" });
 		}
-		if (response.toLowerCase().includes("pull request") || response.toLowerCase().includes("pr")) {
+		if (
+			response.toLowerCase().includes("pull request") ||
+			response.toLowerCase().includes("pr")
+		) {
 			actions.push({ action: "pr", label: "Create Pull Request" });
 		}
 
@@ -328,15 +359,15 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 		const url = new URL(request.url);
 		const path = url.pathname;
 
-        console.log("Path:", path);
+		console.log("Path:", path);
 
 		if (request.method === "POST" && path === "/initialize") {
-            console.log("Initializing agent");
+			console.log("Initializing agent");
 
 			const data = await request.json<{ userId: string }>();
-            console.log(data);
-            const userId = data.userId;
-            console.log("User ID:", userId);
+			console.log(data);
+			const userId = data.userId;
+			console.log("User ID:", userId);
 			await this.initialize(userId);
 			return Response.json({ success: true });
 		}
@@ -348,7 +379,10 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 		}
 
 		if (request.method === "POST" && path === "/fork") {
-			const { owner, repo } = await request.json<{ owner: string; repo: string }>();
+			const { owner, repo } = await request.json<{
+				owner: string;
+				repo: string;
+			}>();
 			const result = await this.forkRepository(owner, repo);
 			return Response.json(result);
 		}
@@ -360,7 +394,12 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 				branchName: string;
 				fromBranch?: string;
 			}>();
-			const result = await this.createBranch(owner, repo, branchName, fromBranch);
+			const result = await this.createBranch(
+				owner,
+				repo,
+				branchName,
+				fromBranch,
+			);
 			return Response.json(result);
 		}
 
@@ -371,7 +410,12 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 				issueNumber: number;
 				comment: string;
 			}>();
-			const result = await this.commentOnIssue(owner, repo, issueNumber, comment);
+			const result = await this.commentOnIssue(
+				owner,
+				repo,
+				issueNumber,
+				comment,
+			);
 			return Response.json(result);
 		}
 
@@ -384,13 +428,20 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 				base: string;
 				body?: string;
 			}>();
-			const result = await this.createPullRequest(owner, repo, title, head, base, body);
+			const result = await this.createPullRequest(
+				owner,
+				repo,
+				title,
+				head,
+				base,
+				body,
+			);
 			return Response.json(result);
 		}
 
 		if (request.method === "GET" && path === "/repos") {
 			const repos = await this.getUserRepositories();
-            console.log("Repos:", repos);
+			console.log("Repos:", repos);
 			return Response.json({ repos });
 		}
 
@@ -402,4 +453,3 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 		return Response.json({ error: "Not found" }, { status: 404 });
 	}
 }
-

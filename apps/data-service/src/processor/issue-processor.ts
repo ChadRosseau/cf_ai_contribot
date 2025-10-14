@@ -24,7 +24,7 @@ export class IssueProcessor {
 	constructor(
 		db: DrizzleD1Database,
 		githubClient: GitHubApiClient,
-		aiSummarizer: AiSummarizer
+		aiSummarizer: AiSummarizer,
 	) {
 		this.db = db;
 		this.githubClient = githubClient;
@@ -49,10 +49,14 @@ export class IssueProcessor {
 		// 2. Fetch repo to get owner/name
 		const repo = await getRepoById(this.db as any, issue.repoId);
 		if (!repo) {
-			throw new Error(`[Issue ID ${issueId}] Repo ID ${issue.repoId} not found`);
+			throw new Error(
+				`[Issue ID ${issueId}] Repo ID ${issue.repoId} not found`,
+			);
 		}
 
-		console.log(`Issue: ${repo.owner}/${repo.name}#${issue.githubIssueNumber} (Issue ID ${issueId})`);
+		console.log(
+			`Issue: ${repo.owner}/${repo.name}#${issue.githubIssueNumber} (Issue ID ${issueId})`,
+		);
 
 		// 3. Fetch full issue details from GitHub (in case body was truncated in list)
 		console.log("Fetching full issue details from GitHub...");
@@ -60,7 +64,7 @@ export class IssueProcessor {
 			const fullIssue = await this.githubClient.fetchIssue(
 				repo.owner,
 				repo.name,
-				issue.githubIssueNumber
+				issue.githubIssueNumber,
 			);
 
 			// Update issue body if different (might have been truncated)
@@ -82,7 +86,10 @@ export class IssueProcessor {
 
 			stats.detailsFetched = true;
 		} catch (error) {
-			console.error(`❌ [Issue ID ${issueId}] Failed to fetch full issue details:`, error);
+			console.error(
+				`❌ [Issue ID ${issueId}] Failed to fetch full issue details:`,
+				error,
+			);
 			throw error; // Will retry
 		}
 
@@ -91,14 +98,15 @@ export class IssueProcessor {
 		try {
 			// Fetch updated issue to get full body
 			const updatedIssue = await getIssueById(this.db as any, issueId);
-			if (!updatedIssue) throw new Error(`[Issue ID ${issueId}] Issue not found after update`);
+			if (!updatedIssue)
+				throw new Error(`[Issue ID ${issueId}] Issue not found after update`);
 
 			const analysis = await this.aiSummarizer.analyzeIssue(
 				repo.owner,
 				repo.name,
 				updatedIssue.title,
 				updatedIssue.body || "",
-				repo.languagesOrdered || []
+				repo.languagesOrdered || [],
 			);
 
 			// Store AI analysis
@@ -109,9 +117,14 @@ export class IssueProcessor {
 			});
 
 			stats.aiAnalysisGenerated = true;
-			console.log(`✓ Generated AI analysis (difficulty: ${analysis.difficulty})`);
+			console.log(
+				`✓ Generated AI analysis (difficulty: ${analysis.difficulty})`,
+			);
 		} catch (error) {
-			console.error(`⚠️ [Issue ID ${issueId}] Failed to generate AI analysis:`, error);
+			console.error(
+				`⚠️ [Issue ID ${issueId}] Failed to generate AI analysis:`,
+				error,
+			);
 			// Don't throw - mark as failed instead
 		}
 

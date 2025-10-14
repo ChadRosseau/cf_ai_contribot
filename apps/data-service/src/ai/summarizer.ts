@@ -27,7 +27,7 @@ export class AiSummarizer {
 	async summarizeRepo(
 		repoOwner: string,
 		repoName: string,
-		languages: string[]
+		languages: string[],
 	): Promise<RepoSummaryResult> {
 		const prompt = generateRepoSummaryPrompt(repoName, repoOwner, languages);
 
@@ -37,7 +37,10 @@ export class AiSummarizer {
 				summary: response.trim(),
 			};
 		} catch (error) {
-			console.error(`Failed to generate repo summary for ${repoOwner}/${repoName}:`, error);
+			console.error(
+				`Failed to generate repo summary for ${repoOwner}/${repoName}:`,
+				error,
+			);
 			throw error;
 		}
 	}
@@ -46,25 +49,25 @@ export class AiSummarizer {
 		repoOwner: string,
 		repoName: string,
 		issueTitle: string,
-		issueBody: string | null
+		issueBody: string | null,
 	): Promise<IssueAnalysisResult> {
 		const prompt = generateIssueAnalysisPrompt(
 			repoName,
 			repoOwner,
 			issueTitle,
-			issueBody
+			issueBody,
 		);
 
 		try {
 			const response = await this.runAiModel(prompt, 800);
-			
+
 			// Parse JSON response
 			const parsed = this.parseIssueAnalysis(response);
 			return parsed;
 		} catch (error) {
 			console.error(
 				`Failed to analyze issue "${issueTitle}" for ${repoOwner}/${repoName}:`,
-				error
+				error,
 			);
 			throw error;
 		}
@@ -82,7 +85,11 @@ export class AiSummarizer {
 			max_tokens: maxTokens,
 		});
 
-		if (!response || typeof response !== "object" || !("response" in response)) {
+		if (
+			!response ||
+			typeof response !== "object" ||
+			!("response" in response)
+		) {
 			throw new Error("Invalid AI response format");
 		}
 
@@ -115,14 +122,14 @@ export class AiSummarizer {
 			};
 		} catch (error) {
 			console.error("Failed to parse AI response:", response);
-			
+
 			// Fallback to defaults
 			return {
 				intro: "This issue requires investigation.",
 				difficulty: 3,
-				firstSteps: "Review the issue description and related code to understand what needs to be done.",
+				firstSteps:
+					"Review the issue description and related code to understand what needs to be done.",
 			};
 		}
 	}
 }
-

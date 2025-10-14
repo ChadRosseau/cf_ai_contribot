@@ -5,7 +5,7 @@
 export function generateRepoSummaryPrompt(
 	repoName: string,
 	repoOwner: string,
-	languages: string[]
+	languages: string[],
 ): string {
 	return `You are an expert at analyzing open-source repositories. Generate a concise, beginner-friendly summary of the following repository.
 
@@ -21,4 +21,3 @@ Keep it simple, welcoming, and focused on what makes this project a good learnin
 
 Summary:`;
 }
-

@@ -1,29 +1,29 @@
 {
-  "name": "contribot",
-  "version": "1.0.0",
-  "description": "AI-powered open source onboarding platform",
-  "scripts": {
-    "setup": "pnpm i && pnpm run build:data-ops",
-    "format": "pnpm exec biome format --write",
-    "build:data-ops": "pnpm run --filter data-ops build",
-    "dev:user-application": "pnpm run --filter user-application dev",
-    "deploy:user-application": "pnpm run build:data-ops && pnpm run --filter user-application deploy",
-    "dev:data-service": "pnpm run --filter data-service dev",
-    "deploy:data-service": "pnpm run build:data-ops && pnpm run --filter data-service deploy",
-    "dev:scraper-service": "pnpm run --filter scraper-service dev",
-    "deploy:scraper-service": "pnpm run build:data-ops && pnpm run --filter scraper-service deploy",
-    "dev:agent-service": "pnpm run --filter agent-service dev",
-    "deploy:agent-service": "pnpm run build:data-ops && pnpm run --filter agent-service deploy"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.14.0",
-  "devDependencies": {
-    "@types/node": "^22.17.2",
-    "typescript": "^5.9.2"
-  },
-  "dependencies": {
-    "@biomejs/biome": "^2.2.6"
-  }
+	"name": "contribot",
+	"version": "1.0.0",
+	"description": "AI-powered open source onboarding platform",
+	"scripts": {
+		"setup": "pnpm i && pnpm run build:data-ops",
+		"format": "pnpm exec biome format --write",
+		"build:data-ops": "pnpm run --filter data-ops build",
+		"dev:user-application": "pnpm run --filter user-application dev",
+		"deploy:user-application": "pnpm run build:data-ops && pnpm run --filter user-application deploy",
+		"dev:data-service": "pnpm run --filter data-service dev",
+		"deploy:data-service": "pnpm run build:data-ops && pnpm run --filter data-service deploy",
+		"dev:scraper-service": "pnpm run --filter scraper-service dev",
+		"deploy:scraper-service": "pnpm run build:data-ops && pnpm run --filter scraper-service deploy",
+		"dev:agent-service": "pnpm run --filter agent-service dev",
+		"deploy:agent-service": "pnpm run build:data-ops && pnpm run --filter agent-service deploy"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"packageManager": "pnpm@10.14.0",
+	"devDependencies": {
+		"@types/node": "^22.17.2",
+		"typescript": "^5.9.2"
+	},
+	"dependencies": {
+		"@biomejs/biome": "^2.2.6"
+	}
 }
