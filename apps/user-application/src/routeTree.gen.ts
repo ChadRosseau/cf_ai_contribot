@@ -16,10 +16,14 @@ import { Route as AuthOnboardingRouteImport } from './routes/_auth/onboarding'
 import { Route as StaticDocsIndexRouteImport } from './routes/_static/docs/index'
 import { Route as AuthAppIndexRouteImport } from './routes/_auth/app/index'
 import { Route as ApiUserPreferencesRouteImport } from './routes/api/user.preferences'
+import { Route as ApiUserFavouritesRouteImport } from './routes/api/user.favourites'
+import { Route as ApiReposRecommendedRouteImport } from './routes/api/repos.recommended'
 import { Route as ApiIssuesRecommendedRouteImport } from './routes/api/issues.recommended'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiAgentSplatRouteImport } from './routes/api/agent.$'
 import { Route as StaticDocsNameRouteImport } from './routes/_static/docs/$name'
+import { Route as ApiUserFavouritesReposRouteImport } from './routes/api/user.favourites.repos'
+import { Route as ApiUserFavouritesIssuesRouteImport } from './routes/api/user.favourites.issues'
 import { Route as AuthAppPolarSubscriptionsRouteImport } from './routes/_auth/app/polar/subscriptions'
 import { Route as AuthAppPolarPortalRouteImport } from './routes/_auth/app/polar/portal'
 import { Route as AuthAppPolarCheckoutSuccessRouteImport } from './routes/_auth/app/polar/checkout.success'
@@ -57,6 +61,16 @@ const ApiUserPreferencesRoute = ApiUserPreferencesRouteImport.update({
   path: '/api/user/preferences',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUserFavouritesRoute = ApiUserFavouritesRouteImport.update({
+  id: '/api/user/favourites',
+  path: '/api/user/favourites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReposRecommendedRoute = ApiReposRecommendedRouteImport.update({
+  id: '/api/repos/recommended',
+  path: '/api/repos/recommended',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiIssuesRecommendedRoute = ApiIssuesRecommendedRouteImport.update({
   id: '/api/issues/recommended',
   path: '/api/issues/recommended',
@@ -76,6 +90,16 @@ const StaticDocsNameRoute = StaticDocsNameRouteImport.update({
   id: '/docs/$name',
   path: '/docs/$name',
   getParentRoute: () => StaticRouteRoute,
+} as any)
+const ApiUserFavouritesReposRoute = ApiUserFavouritesReposRouteImport.update({
+  id: '/repos',
+  path: '/repos',
+  getParentRoute: () => ApiUserFavouritesRoute,
+} as any)
+const ApiUserFavouritesIssuesRoute = ApiUserFavouritesIssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => ApiUserFavouritesRoute,
 } as any)
 const AuthAppPolarSubscriptionsRoute =
   AuthAppPolarSubscriptionsRouteImport.update({
@@ -102,11 +126,15 @@ export interface FileRoutesByFullPath {
   '/api/agent/$': typeof ApiAgentSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/issues/recommended': typeof ApiIssuesRecommendedRoute
+  '/api/repos/recommended': typeof ApiReposRecommendedRoute
+  '/api/user/favourites': typeof ApiUserFavouritesRouteWithChildren
   '/api/user/preferences': typeof ApiUserPreferencesRoute
   '/app': typeof AuthAppIndexRoute
   '/docs': typeof StaticDocsIndexRoute
   '/app/polar/portal': typeof AuthAppPolarPortalRoute
   '/app/polar/subscriptions': typeof AuthAppPolarSubscriptionsRoute
+  '/api/user/favourites/issues': typeof ApiUserFavouritesIssuesRoute
+  '/api/user/favourites/repos': typeof ApiUserFavouritesReposRoute
   '/app/polar/checkout/success': typeof AuthAppPolarCheckoutSuccessRoute
 }
 export interface FileRoutesByTo {
@@ -116,11 +144,15 @@ export interface FileRoutesByTo {
   '/api/agent/$': typeof ApiAgentSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/issues/recommended': typeof ApiIssuesRecommendedRoute
+  '/api/repos/recommended': typeof ApiReposRecommendedRoute
+  '/api/user/favourites': typeof ApiUserFavouritesRouteWithChildren
   '/api/user/preferences': typeof ApiUserPreferencesRoute
   '/app': typeof AuthAppIndexRoute
   '/docs': typeof StaticDocsIndexRoute
   '/app/polar/portal': typeof AuthAppPolarPortalRoute
   '/app/polar/subscriptions': typeof AuthAppPolarSubscriptionsRoute
+  '/api/user/favourites/issues': typeof ApiUserFavouritesIssuesRoute
+  '/api/user/favourites/repos': typeof ApiUserFavouritesReposRoute
   '/app/polar/checkout/success': typeof AuthAppPolarCheckoutSuccessRoute
 }
 export interface FileRoutesById {
@@ -133,11 +165,15 @@ export interface FileRoutesById {
   '/api/agent/$': typeof ApiAgentSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/issues/recommended': typeof ApiIssuesRecommendedRoute
+  '/api/repos/recommended': typeof ApiReposRecommendedRoute
+  '/api/user/favourites': typeof ApiUserFavouritesRouteWithChildren
   '/api/user/preferences': typeof ApiUserPreferencesRoute
   '/_auth/app/': typeof AuthAppIndexRoute
   '/_static/docs/': typeof StaticDocsIndexRoute
   '/_auth/app/polar/portal': typeof AuthAppPolarPortalRoute
   '/_auth/app/polar/subscriptions': typeof AuthAppPolarSubscriptionsRoute
+  '/api/user/favourites/issues': typeof ApiUserFavouritesIssuesRoute
+  '/api/user/favourites/repos': typeof ApiUserFavouritesReposRoute
   '/_auth/app/polar/checkout/success': typeof AuthAppPolarCheckoutSuccessRoute
 }
 export interface FileRouteTypes {
@@ -149,11 +185,15 @@ export interface FileRouteTypes {
     | '/api/agent/$'
     | '/api/auth/$'
     | '/api/issues/recommended'
+    | '/api/repos/recommended'
+    | '/api/user/favourites'
     | '/api/user/preferences'
     | '/app'
     | '/docs'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/api/user/favourites/issues'
+    | '/api/user/favourites/repos'
     | '/app/polar/checkout/success'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -163,11 +203,15 @@ export interface FileRouteTypes {
     | '/api/agent/$'
     | '/api/auth/$'
     | '/api/issues/recommended'
+    | '/api/repos/recommended'
+    | '/api/user/favourites'
     | '/api/user/preferences'
     | '/app'
     | '/docs'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/api/user/favourites/issues'
+    | '/api/user/favourites/repos'
     | '/app/polar/checkout/success'
   id:
     | '__root__'
@@ -179,11 +223,15 @@ export interface FileRouteTypes {
     | '/api/agent/$'
     | '/api/auth/$'
     | '/api/issues/recommended'
+    | '/api/repos/recommended'
+    | '/api/user/favourites'
     | '/api/user/preferences'
     | '/_auth/app/'
     | '/_static/docs/'
     | '/_auth/app/polar/portal'
     | '/_auth/app/polar/subscriptions'
+    | '/api/user/favourites/issues'
+    | '/api/user/favourites/repos'
     | '/_auth/app/polar/checkout/success'
   fileRoutesById: FileRoutesById
 }
@@ -194,6 +242,8 @@ export interface RootRouteChildren {
   ApiAgentSplatRoute: typeof ApiAgentSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiIssuesRecommendedRoute: typeof ApiIssuesRecommendedRoute
+  ApiReposRecommendedRoute: typeof ApiReposRecommendedRoute
+  ApiUserFavouritesRoute: typeof ApiUserFavouritesRouteWithChildren
   ApiUserPreferencesRoute: typeof ApiUserPreferencesRoute
 }
 
@@ -248,6 +298,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUserPreferencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/user/favourites': {
+      id: '/api/user/favourites'
+      path: '/api/user/favourites'
+      fullPath: '/api/user/favourites'
+      preLoaderRoute: typeof ApiUserFavouritesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/repos/recommended': {
+      id: '/api/repos/recommended'
+      path: '/api/repos/recommended'
+      fullPath: '/api/repos/recommended'
+      preLoaderRoute: typeof ApiReposRecommendedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/issues/recommended': {
       id: '/api/issues/recommended'
       path: '/api/issues/recommended'
@@ -275,6 +339,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/$name'
       preLoaderRoute: typeof StaticDocsNameRouteImport
       parentRoute: typeof StaticRouteRoute
+    }
+    '/api/user/favourites/repos': {
+      id: '/api/user/favourites/repos'
+      path: '/repos'
+      fullPath: '/api/user/favourites/repos'
+      preLoaderRoute: typeof ApiUserFavouritesReposRouteImport
+      parentRoute: typeof ApiUserFavouritesRoute
+    }
+    '/api/user/favourites/issues': {
+      id: '/api/user/favourites/issues'
+      path: '/issues'
+      fullPath: '/api/user/favourites/issues'
+      preLoaderRoute: typeof ApiUserFavouritesIssuesRouteImport
+      parentRoute: typeof ApiUserFavouritesRoute
     }
     '/_auth/app/polar/subscriptions': {
       id: '/_auth/app/polar/subscriptions'
@@ -334,6 +412,19 @@ const StaticRouteRouteWithChildren = StaticRouteRoute._addFileChildren(
   StaticRouteRouteChildren,
 )
 
+interface ApiUserFavouritesRouteChildren {
+  ApiUserFavouritesIssuesRoute: typeof ApiUserFavouritesIssuesRoute
+  ApiUserFavouritesReposRoute: typeof ApiUserFavouritesReposRoute
+}
+
+const ApiUserFavouritesRouteChildren: ApiUserFavouritesRouteChildren = {
+  ApiUserFavouritesIssuesRoute: ApiUserFavouritesIssuesRoute,
+  ApiUserFavouritesReposRoute: ApiUserFavouritesReposRoute,
+}
+
+const ApiUserFavouritesRouteWithChildren =
+  ApiUserFavouritesRoute._addFileChildren(ApiUserFavouritesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
@@ -341,6 +432,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAgentSplatRoute: ApiAgentSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiIssuesRecommendedRoute: ApiIssuesRecommendedRoute,
+  ApiReposRecommendedRoute: ApiReposRecommendedRoute,
+  ApiUserFavouritesRoute: ApiUserFavouritesRouteWithChildren,
   ApiUserPreferencesRoute: ApiUserPreferencesRoute,
 }
 export const routeTree = rootRouteImport

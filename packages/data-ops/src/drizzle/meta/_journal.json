@@ -1,41 +1,48 @@
 {
-	"version": "7",
-	"dialect": "sqlite",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "6",
-			"when": 1759952143223,
-			"tag": "0000_polite_manta",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "6",
-			"when": 1760149192947,
-			"tag": "0001_flawless_cammi",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "6",
-			"when": 1760339619049,
-			"tag": "0002_jittery_toad",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "6",
-			"when": 1760347307348,
-			"tag": "0003_giant_vanisher",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "6",
-			"when": 1760390272377,
-			"tag": "0004_tranquil_ravenous",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1759952143223,
+      "tag": "0000_polite_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1760149192947,
+      "tag": "0001_flawless_cammi",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1760339619049,
+      "tag": "0002_jittery_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1760347307348,
+      "tag": "0003_giant_vanisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1760390272377,
+      "tag": "0004_tranquil_ravenous",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1760567191882,
+      "tag": "0005_nice_radioactive_man",
+      "breakpoints": true
+    }
+  ]
 }

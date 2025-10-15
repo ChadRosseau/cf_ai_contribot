@@ -7,6 +7,7 @@ import { Logo } from "@/components/ui/logo";
 import { Bell, Search, Menu } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { Card } from "../ui/card";
 
 interface HeaderProps {
     className?: string;
@@ -25,46 +26,43 @@ export function Header({ className, onMobileMenuToggle }: HeaderProps) {
     return (
         <header
             className={cn(
-                "flex h-16 items-center justify-between border-b border-border bg-background px-6",
+                "flex h-18 items-center justify-between  bg-transparent absolute top-0 left-0 w-full px-6 py-4 z-20",
                 className
             )}
         >
             {/* Left side - Logo */}
             <div className="flex items-center gap-4">
-                <Logo size="md" />
+                <Logo size="md" showText={false} />
             </div>
 
             {/* Right side - Notifications and user menu */}
             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-destructive"></span>
-                </Button>
-
-                <AccountDialog>
-                    <Button
-                        variant="ghost"
-                        className="flex items-center gap-2 px-3"
-                    >
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage
-                                src={user?.image || undefined}
-                                alt={user?.name || "User"}
-                            />
-                            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                                {fallbackText}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="hidden sm:flex flex-col items-start">
-                            <span className="text-sm font-medium">
-                                {user?.name || "User"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                                Online
-                            </span>
-                        </div>
-                    </Button>
-                </AccountDialog>
+                <Card className="py-2">
+                    <AccountDialog>
+                        <Button
+                            variant="ghost"
+                            className="flex items-center gap-2 px-3"
+                        >
+                            <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                    src={user?.image || undefined}
+                                    alt={user?.name || "User"}
+                                />
+                                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                                    {fallbackText}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="hidden sm:flex flex-col items-start">
+                                <span className="text-sm font-medium">
+                                    {user?.name || "User"}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                    Online
+                                </span>
+                            </div>
+                        </Button>
+                    </AccountDialog>
+                </Card>
             </div>
         </header>
     );

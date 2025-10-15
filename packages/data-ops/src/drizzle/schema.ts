@@ -109,3 +109,29 @@ export const aiSummaries = sqliteTable(
 		),
 	}),
 );
+
+// User favourites - stores user's starred repos and issues
+export const userFavourites = sqliteTable(
+	"user_favourites",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		userId: text("user_id").notNull(),
+		entityType: text("entity_type").notNull(), // "repo" or "issue"
+		entityId: integer("entity_id").notNull(),
+		createdAt: integer("created_at", { mode: "timestamp_ms" })
+			.notNull()
+			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+	},
+	(table) => ({
+		userEntityUnique: unique().on(
+			table.userId,
+			table.entityType,
+			table.entityId,
+		),
+		userIdIdx: index("user_favourites_user_id_idx").on(table.userId),
+		entityTypeIdIdx: index("user_favourites_entity_type_id_idx").on(
+			table.entityType,
+			table.entityId,
+		),
+	}),
+);

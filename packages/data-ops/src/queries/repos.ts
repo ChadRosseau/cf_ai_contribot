@@ -2,8 +2,8 @@
  * Drizzle queries for repos table
  */
 
-import { eq, and, asc } from "drizzle-orm";
-import { repos } from "../drizzle/schema";
+import { eq, and, asc, desc, gt, sql } from "drizzle-orm";
+import { repos, aiSummaries } from "../drizzle/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 export interface CreateRepoData {
@@ -145,4 +145,70 @@ export async function updateRepoProcessingStatus(
 		.returning();
 
 	return result[0];
+}
+
+export interface RecommendedRepo {
+	id: number;
+	owner: string;
+	name: string;
+	description: string;
+	languages: string[];
+	openIssuesCount: number;
+	summary?: string;
+}
+
+/**
+ * Get paginated repos with open issues and AI summaries, ordered by most recently updated
+ */
+export async function getPaginatedRepos(
+	db: DrizzleD1Database,
+	page: number,
+	limit: number,
+): Promise<RecommendedRepo[]> {
+	const offset = (page - 1) * limit;
+
+	const results = await db
+		.select({
+			id: repos.id,
+			owner: repos.owner,
+			name: repos.name,
+			githubUrl: repos.githubUrl,
+			languages: repos.languagesOrdered,
+			openIssuesCount: repos.openIssuesCount,
+			summary: aiSummaries.repoSummary,
+		})
+		.from(repos)
+		.leftJoin(
+			aiSummaries,
+			and(
+				eq(aiSummaries.entityType, "repo"),
+				eq(aiSummaries.entityId, repos.id),
+			),
+		)
+		.where(gt(repos.openIssuesCount, 0))
+		.orderBy(desc(repos.updatedAt))
+		.limit(limit)
+		.offset(offset);
+
+	return results.map((row) => ({
+		id: row.id,
+		owner: row.owner,
+		name: row.name,
+		description: row.githubUrl,
+		languages: row.languages || [],
+		openIssuesCount: row.openIssuesCount || 0,
+		summary: row.summary || undefined,
+	}));
+}
+
+/**
+ * Get total count of repos with open issues
+ */
+export async function getReposCount(db: DrizzleD1Database) {
+	const result = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(repos)
+		.where(gt(repos.openIssuesCount, 0));
+
+	return result[0]?.count || 0;
 }

@@ -9,21 +9,13 @@ export const Route = createFileRoute("/_auth/app/")({
 
 function RouteComponent() {
     return (
-        <div className="h-screen flex flex-col">
-            <header className="border-b px-4 py-3 flex items-center justify-between">
-                <Logo size="md" />
-                <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">
-                        Welcome back!
-                    </span>
-                </div>
-            </header>
-
-            <div className="flex-1 grid md:grid-cols-2 overflow-hidden">
-                <div className="border-r">
+        <div className="min-h-screen  flex flex-col">
+            <div className="bg-gradient-to-br from-[#FBAD41] to-[#FF6633] absolute top-0 right-0 w-2/3 h-full "></div>
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-lg shadow-2xl overflow-hidden z-10">
                     <ChatInterface />
                 </div>
-                <div>
+                <div className="bg-transparent md:max-h-screen z-30">
                     <DashboardView />
                 </div>
             </div>

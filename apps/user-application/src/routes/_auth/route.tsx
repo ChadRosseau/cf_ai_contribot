@@ -73,16 +73,13 @@ function RouteComponent() {
     return (
         <div className="flex h-screen bg-background overflow-hidden">
             <div className="flex flex-1 flex-col overflow-hidden">
-                <Header
-                    onMobileMenuToggle={() =>
-                        setIsMobileMenuOpen(!isMobileMenuOpen)
-                    }
-                />
-
-                <main className="flex-1 overflow-y-auto bg-muted/20 p-6">
-                    <div className="mx-auto max-w-7xl">
-                        <Outlet />
-                    </div>
+                <main className="flex-1 overflow-y-auto bg-muted/20">
+                    <Header
+                        onMobileMenuToggle={() =>
+                            setIsMobileMenuOpen(!isMobileMenuOpen)
+                        }
+                    />
+                    <Outlet />
                 </main>
             </div>
         </div>

@@ -223,7 +223,179 @@ export interface RecommendedIssue {
 }
 
 /**
- * Get recommended issues based on user preferences
+ * Get paginated recommended issues based on user preferences
+ */
+export async function getPaginatedRecommendedIssues(
+	db: DrizzleD1Database,
+	preferredLanguages: string[],
+	difficultyPreference: number,
+	page: number,
+	limit: number,
+	repoFilter?: string,
+): Promise<RecommendedIssue[]> {
+	try {
+		const offset = (page - 1) * limit;
+		const difficultyRange = {
+			min: difficultyPreference - 1,
+			max: difficultyPreference + 1,
+		};
+
+		// Build language filter conditions
+		const languageConditions =
+			preferredLanguages.length > 0
+				? or(
+						...preferredLanguages.map((lang) =>
+							like(repos.languagesOrdered, `%${lang}%`),
+						),
+					)
+				: sql`1=1`;
+
+		// Build repo filter if provided
+		let repoCondition = sql`1=1`;
+		if (repoFilter) {
+			const [owner, name] = repoFilter.split("/");
+			if (owner && name) {
+				repoCondition = and(
+					eq(repos.owner, owner),
+					eq(repos.name, name),
+				) as any;
+			}
+		}
+
+		const result = await db
+			.select({
+				id: issues.id,
+				issueNumber: issues.githubIssueNumber,
+				title: issues.title,
+				url: issues.githubUrl,
+				state: issues.state,
+				owner: repos.owner,
+				repoName: repos.name,
+				languages: repos.languagesOrdered,
+				intro: aiSummaries.issueIntro,
+				difficulty: aiSummaries.difficultyScore,
+				firstSteps: aiSummaries.firstSteps,
+			})
+			.from(issues)
+			.innerJoin(repos, eq(issues.repoId, repos.id))
+			.leftJoin(
+				aiSummaries,
+				and(
+					eq(aiSummaries.entityType, "issue"),
+					eq(aiSummaries.entityId, issues.id),
+				),
+			)
+			.where(
+				and(
+					eq(issues.state, "open"),
+					languageConditions,
+					repoCondition,
+					or(
+						between(
+							aiSummaries.difficultyScore,
+							difficultyRange.min,
+							difficultyRange.max,
+						),
+						isNull(aiSummaries.difficultyScore),
+					),
+				),
+			)
+			.orderBy(desc(issues.updatedAt))
+			.limit(limit)
+			.offset(offset);
+
+		return result.map((row) => ({
+			id: row.id,
+			issueNumber: row.issueNumber,
+			title: row.title,
+			url: row.url,
+			state: row.state,
+			owner: row.owner,
+			repoName: row.repoName,
+			languages: row.languages || [],
+			intro: row.intro || "No summary available",
+			difficulty: row.difficulty || 3,
+			firstSteps: row.firstSteps || "Review the issue and get started",
+		}));
+	} catch (error) {
+		console.error("Failed to get paginated recommended issues:", error);
+		throw error;
+	}
+}
+
+/**
+ * Get total count of recommended issues
+ */
+export async function getRecommendedIssuesCount(
+	db: DrizzleD1Database,
+	preferredLanguages: string[],
+	difficultyPreference: number,
+	repoFilter?: string,
+): Promise<number> {
+	try {
+		const difficultyRange = {
+			min: difficultyPreference - 1,
+			max: difficultyPreference + 1,
+		};
+
+		// Build language filter conditions
+		const languageConditions =
+			preferredLanguages.length > 0
+				? or(
+						...preferredLanguages.map((lang) =>
+							like(repos.languagesOrdered, `%${lang}%`),
+						),
+					)
+				: sql`1=1`;
+
+		// Build repo filter if provided
+		let repoCondition = sql`1=1`;
+		if (repoFilter) {
+			const [owner, name] = repoFilter.split("/");
+			if (owner && name) {
+				repoCondition = and(
+					eq(repos.owner, owner),
+					eq(repos.name, name),
+				) as any;
+			}
+		}
+
+		const result = await db
+			.select({ count: sql<number>`count(*)` })
+			.from(issues)
+			.innerJoin(repos, eq(issues.repoId, repos.id))
+			.leftJoin(
+				aiSummaries,
+				and(
+					eq(aiSummaries.entityType, "issue"),
+					eq(aiSummaries.entityId, issues.id),
+				),
+			)
+			.where(
+				and(
+					eq(issues.state, "open"),
+					languageConditions,
+					repoCondition,
+					or(
+						between(
+							aiSummaries.difficultyScore,
+							difficultyRange.min,
+							difficultyRange.max,
+						),
+						isNull(aiSummaries.difficultyScore),
+					),
+				),
+			);
+
+		return result[0]?.count || 0;
+	} catch (error) {
+		console.error("Failed to get recommended issues count:", error);
+		return 0;
+	}
+}
+
+/**
+ * Get recommended issues based on user preferences (legacy, non-paginated)
  */
 export async function getRecommendedIssues(
 	db: DrizzleD1Database,
