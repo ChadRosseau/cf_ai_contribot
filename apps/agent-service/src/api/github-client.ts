@@ -122,6 +122,25 @@ export class GitHubApiClient {
 		}));
 	}
 
+	async fetchAllUserRepositories() {
+		const perPage = 100;
+		let allRepos: any[] = [];
+
+		while (true) {
+			const repos = await this.listUserRepositories({
+				perPage,
+				sort: "updated",
+			});
+
+			allRepos = allRepos.concat(repos);
+
+			// Stop if fewer than perPage repos returned
+			if (repos.length < perPage) break;
+		}
+
+		return allRepos;
+	}
+
 	async getAuthenticatedUser(): Promise<{
 		login: string;
 		name: string | null;

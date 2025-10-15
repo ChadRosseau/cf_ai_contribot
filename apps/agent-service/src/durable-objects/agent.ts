@@ -1,6 +1,6 @@
 /**
  * Contribot Agent - Durable Object implementing Cloudflare Agents SDK
- * Maintains per-user conversation state and orchestrates GitHub actions via MCP
+ * Maintains per-user conversation state and orchestrates GitHub actions
  */
 
 import { DurableObject } from "cloudflare:workers";
@@ -34,7 +34,7 @@ interface ConversationMessage {
 
 export class ContribotAgent extends DurableObject {
 	private state: AgentState | null = null;
-	private mcpClient: GitHubApiClient | null = null;
+	private apiClient: GitHubApiClient | null = null;
 
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
@@ -56,10 +56,10 @@ export class ContribotAgent extends DurableObject {
 			await this.saveState();
 		}
 
-		await this.initializeMcpClient();
+		await this.initializeApiClient();
 	}
 
-	private async initializeMcpClient(): Promise<void> {
+	private async initializeApiClient(): Promise<void> {
 		if (!this.state) {
 			throw new Error("Agent not initialized");
 		}
@@ -73,7 +73,7 @@ export class ContribotAgent extends DurableObject {
 
 		console.log("Tokens:", tokens);
 
-		this.mcpClient = new GitHubApiClient(tokens.accessToken);
+		this.apiClient = new GitHubApiClient(tokens.accessToken);
 	}
 
 	private async saveState(): Promise<void> {
@@ -141,11 +141,11 @@ export class ContribotAgent extends DurableObject {
 		success: boolean;
 		forkedRepo: { owner: string; name: string; url: string };
 	}> {
-		if (!this.mcpClient) {
+		if (!this.apiClient) {
 			throw new Error("MCP client not initialized");
 		}
 
-		const forkedRepo = await this.mcpClient.forkRepository(owner, repo);
+		const forkedRepo = await this.apiClient.forkRepository(owner, repo);
 
 		if (this.state) {
 			this.state.currentContext = {
@@ -171,11 +171,11 @@ export class ContribotAgent extends DurableObject {
 		success: boolean;
 		branch: { name: string; sha: string };
 	}> {
-		if (!this.mcpClient) {
+		if (!this.apiClient) {
 			throw new Error("MCP client not initialized");
 		}
 
-		const branch = await this.mcpClient.createBranch(
+		const branch = await this.apiClient.createBranch(
 			owner,
 			repo,
 			branchName,
@@ -206,11 +206,11 @@ export class ContribotAgent extends DurableObject {
 		success: boolean;
 		comment: { id: number; url: string };
 	}> {
-		if (!this.mcpClient) {
+		if (!this.apiClient) {
 			throw new Error("MCP client not initialized");
 		}
 
-		const result = await this.mcpClient.createIssueComment(
+		const result = await this.apiClient.createIssueComment(
 			owner,
 			repo,
 			issueNumber,
@@ -242,11 +242,11 @@ export class ContribotAgent extends DurableObject {
 		success: boolean;
 		pullRequest: { number: number; url: string };
 	}> {
-		if (!this.mcpClient) {
+		if (!this.apiClient) {
 			throw new Error("MCP client not initialized");
 		}
 
-		const pr = await this.mcpClient.createPullRequest(
+		const pr = await this.apiClient.createPullRequest(
 			owner,
 			repo,
 			title,
@@ -276,11 +276,11 @@ export class ContribotAgent extends DurableObject {
 			language: string | null;
 		}>
 	> {
-		if (!this.mcpClient) {
+		if (!this.apiClient) {
 			throw new Error("MCP client not initialized");
 		}
 
-		return await this.mcpClient.listUserRepositories({ perPage: 50 });
+		return await this.apiClient.listUserRepositories({ perPage: 50 });
 	}
 
 	async getState(): Promise<AgentState | null> {
@@ -353,6 +353,32 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 		}
 
 		return actions;
+	}
+
+	private async getUserLanguages(): Promise<string[]> {
+		if (!this.apiClient) {
+			throw new Error("MCP client not initialized");
+		}
+
+		const repos = await this.apiClient.fetchAllUserRepositories();
+
+		const languageCounts = new Map<string, number>();
+		for (const repo of repos) {
+			if (repo.language) {
+				languageCounts.set(
+					repo.language,
+					(languageCounts.get(repo.language) || 0) + 1,
+				);
+			}
+		}
+
+		// Compute top 10
+		const topLanguages = Array.from(languageCounts.entries())
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 10)
+			.map(([language, count]) => ({ language, count }));
+
+		return topLanguages.map((language) => language.language);
 	}
 
 	async fetch(request: Request): Promise<Response> {
@@ -437,6 +463,11 @@ When a user needs to take a GitHub action (fork, branch, comment, PR), clearly s
 				body,
 			);
 			return Response.json(result);
+		}
+
+		if (request.method === "GET" && path === "/languages") {
+			const languages = await this.getUserLanguages();
+			return Response.json({ languages });
 		}
 
 		if (request.method === "GET" && path === "/repos") {

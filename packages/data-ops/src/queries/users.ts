@@ -49,8 +49,11 @@ export async function getUserPreferences(
 			return null;
 		}
 
+		let langs = user.preferredLanguages;
+		if (typeof langs === "string") langs = JSON.parse(langs);
+
 		return {
-			preferredLanguages: user.preferredLanguages || [],
+			preferredLanguages: langs || [],
 			difficultyPreference: user.difficultyPreference || 3,
 			onboardingCompleted: Boolean(user.onboardingCompleted),
 			onboardedAt: user.onboardedAt ? user.onboardedAt.getTime() : undefined,
@@ -69,9 +72,8 @@ export async function updateUserPreferences(
 	userId: string,
 	data: UpdateUserPreferencesData,
 ): Promise<void> {
+	const updates: Record<string, any> = {};
 	try {
-		const updates: Record<string, any> = {};
-
 		if (data.preferredLanguages !== undefined) {
 			updates.preferredLanguages = JSON.stringify(data.preferredLanguages);
 		}
@@ -83,7 +85,7 @@ export async function updateUserPreferences(
 		if (data.onboardingCompleted !== undefined) {
 			updates.onboardingCompleted = data.onboardingCompleted;
 			if (data.onboardingCompleted) {
-				updates.onboardedAt = Date.now();
+				updates.onboardedAt = new Date();
 			}
 		}
 
