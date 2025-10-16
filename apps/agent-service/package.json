@@ -1,25 +1,28 @@
 {
-	"name": "agent-service",
-	"version": "0.0.0",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev --remote",
-		"dev:local": "wrangler dev --persist-to .wrangler/state",
-		"test": "vitest",
-		"cf-typegen": "wrangler types --env-interface BaseEnv"
-	},
-	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.8.19",
-		"@types/node": "^22.15.19",
-		"typescript": "^5.5.2",
-		"vitest": "~3.2.0",
-		"wrangler": "^4.24.3"
-	},
-	"dependencies": {
-		"@cloudflare/workers-types": "^4.20241127.0",
-		"@repo/data-ops": "workspace:*",
-		"agents": "^0.2.13",
-		"hono": "^4.8.3"
-	}
+    "name": "agent-service",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "deploy": "wrangler deploy",
+        "dev": "wrangler dev --remote",
+        "dev:local": "wrangler dev --persist-to .wrangler/state",
+        "test": "vitest",
+        "cf-typegen": "wrangler types --env-interface BaseEnv"
+    },
+    "devDependencies": {
+        "@cloudflare/vitest-pool-workers": "^0.8.19",
+        "@types/node": "^22.15.19",
+        "typescript": "^5.5.2",
+        "vitest": "~3.2.0",
+        "wrangler": "^4.24.3"
+    },
+    "dependencies": {
+        "@ai-sdk/openai": "^2.0.48",
+        "@cloudflare/workers-types": "^4.20241127.0",
+        "@repo/data-ops": "workspace:*",
+        "agents": "^0.2.13",
+        "hono": "^4.8.3",
+        "ai": "^5.0.68",
+        "zod": "^3.25.76"
+    }
 }

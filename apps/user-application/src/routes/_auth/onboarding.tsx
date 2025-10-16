@@ -5,47 +5,11 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Github, Upload, Sparkles } from "lucide-react";
 
+import { COMMON_LANGUAGES } from "@/lib/languages";
+
 export const Route = createFileRoute("/_auth/onboarding")({
     component: OnboardingPage,
 });
-
-const COMMON_LANGUAGES = [
-    "Assembly",
-    "C",
-    "C#",
-    "C++",
-    "C3",
-    "COBOL",
-    "CSS",
-    "Clojure",
-    "CoffeeScript",
-    "Dart",
-    "Elixir",
-    "Erlang",
-    "Go",
-    "Haskell",
-    "HTML",
-    "Java",
-    "JavaScript",
-    "Julia",
-    "Kotlin",
-    "Lua",
-    "Makefile",
-    "Markdown",
-    "Objective-C",
-    "PHP",
-    "PowerShell",
-    "Python",
-    "R",
-    "Ruby",
-    "Rust",
-    "Scala",
-    "Shell",
-    "Swift",
-    "TeX",
-    "TypeScript",
-    "Visual Basic .NET",
-];
 
 function OnboardingPage() {
     const navigate = useNavigate();

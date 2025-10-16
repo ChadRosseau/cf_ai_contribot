@@ -1,0 +1,18 @@
+# Example environment variables for local development
+# Copy this to .dev.vars and fill in your values
+
+# GitHub MCP Server URL (if using MCP)
+# GITHUB_MCP_SERVER_URL=https://api.githubcopilot.com/mcp/
+
+# Deepgram API Key (for voice AI when implemented)
+# DEEPGRAM_API_KEY=your_deepgram_api_key_here
+
+# ElevenLabs API Key (for voice AI when implemented)
+# ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+
+# Cloudflare Account ID (for RealtimeKit when implemented)
+# CF_ACCOUNT_ID=your_cloudflare_account_id
+
+# Cloudflare API Token (for RealtimeKit when implemented)
+# CF_API_TOKEN=your_cloudflare_api_token
+

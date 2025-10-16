@@ -198,4 +198,144 @@ export class GitHubApiClient {
 			url: pr.html_url,
 		}));
 	}
+
+	async getRepository(
+		owner: string,
+		repo: string,
+	): Promise<{
+		name: string;
+		fullName: string;
+		description: string | null;
+		defaultBranch: string;
+		language: string | null;
+		fork: boolean;
+		parent?: { owner: string; name: string };
+	}> {
+		const result = await this.request<any>(`/repos/${owner}/${repo}`);
+		return {
+			name: result.name,
+			fullName: result.full_name,
+			description: result.description,
+			defaultBranch: result.default_branch,
+			language: result.language,
+			fork: result.fork,
+			parent: result.parent
+				? { owner: result.parent.owner.login, name: result.parent.name }
+				: undefined,
+		};
+	}
+
+	async getIssue(
+		owner: string,
+		repo: string,
+		issueNumber: number,
+	): Promise<{
+		number: number;
+		title: string;
+		body: string | null;
+		state: string;
+		url: string;
+		comments: number;
+		labels: string[];
+	}> {
+		const result = await this.request<any>(
+			`/repos/${owner}/${repo}/issues/${issueNumber}`,
+		);
+		return {
+			number: result.number,
+			title: result.title,
+			body: result.body,
+			state: result.state,
+			url: result.html_url,
+			comments: result.comments,
+			labels: result.labels.map((l: any) => l.name),
+		};
+	}
+
+	async checkIfForked(
+		owner: string,
+		repo: string,
+	): Promise<{ forked: boolean; forkUrl?: string; forkName?: string }> {
+		try {
+			const user = await this.getAuthenticatedUser();
+			const repos = await this.listUserRepositories({ perPage: 100 });
+
+			const fork = repos.find(
+				(r) =>
+					r.name.toLowerCase() === repo.toLowerCase() && r.owner === user.login,
+			);
+
+			if (fork) {
+				return {
+					forked: true,
+					forkUrl: `https://github.com/${user.login}/${fork.name}`,
+					forkName: fork.name,
+				};
+			}
+
+			return { forked: false };
+		} catch (error) {
+			console.error("Failed to check fork status:", error);
+			return { forked: false };
+		}
+	}
+
+	async checkBranchExists(
+		owner: string,
+		repo: string,
+		branchName: string,
+	): Promise<boolean> {
+		try {
+			await this.request<any>(
+				`/repos/${owner}/${repo}/git/ref/heads/${branchName}`,
+			);
+			return true;
+		} catch (error) {
+			return false;
+		}
+	}
+
+	async getDefaultBranch(owner: string, repo: string): Promise<string> {
+		const repoData = await this.getRepository(owner, repo);
+		return repoData.defaultBranch;
+	}
+
+	async listIssues(
+		owner: string,
+		repo: string,
+		options?: {
+			state?: "open" | "closed" | "all";
+			labels?: string[];
+			perPage?: number;
+		},
+	): Promise<
+		Array<{
+			number: number;
+			title: string;
+			state: string;
+			url: string;
+			labels: string[];
+		}>
+	> {
+		const params = new URLSearchParams({
+			state: options?.state || "open",
+			per_page: String(options?.perPage || 30),
+		});
+
+		if (options?.labels && options.labels.length > 0) {
+			params.append("labels", options.labels.join(","));
+		}
+
+		const result = await this.request<any[]>(
+			`/repos/${owner}/${repo}/issues?${params.toString()}`,
+		);
+
+		return result.map((issue) => ({
+			number: issue.number,
+			title: issue.title,
+			state: issue.state,
+			url: issue.html_url,
+			labels: issue.labels.map((l: any) => l.name),
+		}));
+	}
 }

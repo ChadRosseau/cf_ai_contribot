@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Slider } from "@/components/ui/slider";
 import {
     ExternalLink,
     GitBranch,
@@ -11,10 +10,11 @@ import {
     ChevronLeft,
     ChevronRight,
     FolderGit2,
-    Github,
     Loader2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { useDashboard } from "@/lib/dashboard-context";
+import { SettingsView } from "./components/settings-view";
 
 interface Issue {
     id: number;
@@ -38,44 +38,6 @@ interface Repo {
     openIssuesCount: number;
     summary?: string;
 }
-
-const COMMON_LANGUAGES = [
-    "Assembly",
-    "C",
-    "C#",
-    "C++",
-    "C3",
-    "COBOL",
-    "CSS",
-    "Clojure",
-    "CoffeeScript",
-    "Dart",
-    "Elixir",
-    "Erlang",
-    "Go",
-    "Haskell",
-    "HTML",
-    "Java",
-    "JavaScript",
-    "Julia",
-    "Kotlin",
-    "Lua",
-    "Makefile",
-    "Markdown",
-    "Objective-C",
-    "PHP",
-    "PowerShell",
-    "Python",
-    "R",
-    "Ruby",
-    "Rust",
-    "Scala",
-    "Shell",
-    "Swift",
-    "TeX",
-    "TypeScript",
-    "Visual Basic .NET",
-];
 
 const LANGUAGE_COLORS: Record<
     string,
@@ -245,74 +207,159 @@ const getLanguageColor = (lang: string) => {
 };
 
 export function DashboardView() {
-    const [activeTab, setActiveTab] = useState<
-        "overview" | "repos" | "list" | "issue" | "favourites" | "settings"
-    >("overview");
-    const [repos, setRepos] = useState<Repo[]>([]);
-    const [issues, setIssues] = useState<Issue[]>([]);
-    const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
-    const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const {
+        state,
+        setActiveTab,
+        setRepos,
+        setIssues,
+        setSelectedIssue,
+        setSelectedRepo,
+        setReposPage,
+        setIssuesPage,
+        setReposTotalPages,
+        setIssuesTotalPages,
+        setIssuesFilters,
+        setFavouriteRepos,
+        setFavouriteIssues,
+        setLoading,
+        updateDashboardState,
+    } = useDashboard();
 
-    // Pagination state
-    const [reposPage, setReposPage] = useState(1);
-    const [issuesPage, setIssuesPage] = useState(1);
-    const [reposTotalPages, setReposTotalPages] = useState(1);
-    const [issuesTotalPages, setIssuesTotalPages] = useState(1);
+    // Destructure state for easier access
+    const {
+        activeTab,
+        repos,
+        issues,
+        selectedIssue,
+        selectedRepo,
+        reposPage,
+        issuesPage,
+        reposTotalPages,
+        issuesTotalPages,
+        favouriteRepos,
+        favouriteIssues,
+        loading,
+        issuesFilters,
+    } = state;
+
     const itemsPerPage = 10;
 
-    // Favourites state
-    const [favouriteRepos, setFavouriteRepos] = useState<Set<number>>(
-        new Set()
-    );
-    const [favouriteIssues, setFavouriteIssues] = useState<Set<number>>(
-        new Set()
-    );
+    // Helper to check if there are any active filters
+    const hasActiveFilters = () => {
+        if (selectedRepo) return true;
+        if (!issuesFilters) return false;
+        return !!(
+            issuesFilters.repoFilter ||
+            (issuesFilters.languages && issuesFilters.languages.length > 0) ||
+            issuesFilters.difficulty
+        );
+    };
 
-    // Settings state
-    const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-    const [difficulty, setDifficulty] = useState(3);
-    const [savingSettings, setSavingSettings] = useState(false);
-    const [scanningGitHub, setScanningGitHub] = useState(false);
+    // Track when data was set by agent vs user navigation to prevent duplicate fetches
+    const lastFetchedReposPage = useRef(0);
+    const lastFetchedIssuesPage = useRef(0);
+    const lastFetchedSelectedRepo = useRef<string | null>(null);
+    const lastFetchedFilters = useRef<string>("");
+    const prevRepos = useRef<Repo[]>([]);
+    const prevIssues = useRef<Issue[]>([]);
 
-    const fetchRepos = useCallback(async (page: number) => {
-        setLoading(true);
-        try {
-            const response = await fetch(
-                `/api/repos/recommended?page=${page}&limit=${itemsPerPage}`,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Repos response:", errorText);
-                throw new Error("Failed to fetch repos");
-            }
-
-            const data = (await response.json()) as {
-                repos: Repo[];
-                total: number;
-            };
-            setRepos(data.repos || []);
-            setReposTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
-        } catch (error) {
-            console.error("Failed to fetch repos:", error);
-        } finally {
-            setLoading(false);
+    // When agent provides new data (detected by array reference change), update the refs to prevent duplicate API fetches
+    useEffect(() => {
+        if (repos.length > 0 && repos !== prevRepos.current) {
+            lastFetchedReposPage.current = reposPage;
+            prevRepos.current = repos;
         }
-    }, []);
+    }, [repos, reposPage]);
+
+    useEffect(() => {
+        if (issues.length > 0 && issues !== prevIssues.current) {
+            lastFetchedIssuesPage.current = issuesPage;
+            lastFetchedSelectedRepo.current = selectedRepo;
+
+            // Also update filter tracking when agent provides data
+            const filters = issuesFilters
+                ? {
+                      repoFilter: issuesFilters.repoFilter,
+                      languages: issuesFilters.languages,
+                      difficulty: issuesFilters.difficulty,
+                  }
+                : selectedRepo
+                ? { repoFilter: selectedRepo }
+                : undefined;
+            lastFetchedFilters.current = JSON.stringify(filters || {});
+
+            prevIssues.current = issues;
+        }
+    }, [issues, issuesPage, selectedRepo, issuesFilters]);
+
+    const fetchRepos = useCallback(
+        async (page: number) => {
+            lastFetchedReposPage.current = page;
+            setLoading(true);
+            try {
+                const response = await fetch(
+                    `/api/repos/recommended?page=${page}&limit=${itemsPerPage}`,
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Repos response:", errorText);
+                    throw new Error("Failed to fetch repos");
+                }
+
+                const data = (await response.json()) as {
+                    repos: Repo[];
+                    total: number;
+                };
+                setRepos(data.repos || []);
+                setReposTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
+
+                // Sync to agent state (UI-initiated query)
+                updateDashboardState({
+                    repos: data.repos || [],
+                    reposPage: page,
+                    reposTotalPages: Math.ceil(
+                        (data.total || 0) / itemsPerPage
+                    ),
+                });
+            } catch (error) {
+                console.error("Failed to fetch repos:", error);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [setLoading, setRepos, setReposTotalPages, updateDashboardState]
+    );
 
     const fetchRecommendedIssues = useCallback(
-        async (page: number, repoFilter?: string) => {
+        async (
+            page: number,
+            filters?: {
+                repoFilter?: string;
+                languages?: string[];
+                difficulty?: number;
+            }
+        ) => {
+            lastFetchedIssuesPage.current = page;
+            lastFetchedSelectedRepo.current = filters?.repoFilter || null;
             setLoading(true);
             try {
                 let url = `/api/issues/recommended?page=${page}&limit=${itemsPerPage}`;
-                if (repoFilter) {
-                    url += `&repo=${encodeURIComponent(repoFilter)}`;
+                if (filters?.repoFilter) {
+                    url += `&repo=${encodeURIComponent(filters.repoFilter)}`;
+                }
+                if (filters?.languages && filters.languages.length > 0) {
+                    url += `&languages=${filters.languages
+                        .map(encodeURIComponent)
+                        .join(",")}`;
+                }
+                if (filters?.difficulty) {
+                    url += `&difficulty=${filters.difficulty}`;
                 }
 
                 const response = await fetch(url, {
@@ -335,13 +382,23 @@ export function DashboardView() {
                 setIssuesTotalPages(
                     Math.ceil((data.total || 0) / itemsPerPage)
                 );
+
+                // Sync to agent state (UI-initiated query)
+                updateDashboardState({
+                    issues: data.issues || [],
+                    issuesPage: page,
+                    issuesTotalPages: Math.ceil(
+                        (data.total || 0) / itemsPerPage
+                    ),
+                    issuesFilters: filters || {},
+                });
             } catch (error) {
                 console.error("Failed to fetch issues:", error);
             } finally {
                 setLoading(false);
             }
         },
-        []
+        [setLoading, setIssues, setIssuesTotalPages, updateDashboardState]
     );
 
     // Load favourites on mount
@@ -362,44 +419,43 @@ export function DashboardView() {
             }
         };
         loadFavourites();
-    }, []);
+    }, [setFavouriteRepos, setFavouriteIssues]);
 
-    // Load user preferences when settings tab is opened
+    // biome-ignore lint/correctness/useExhaustiveDependencies: fetchRepos and fetchRecommendedIssues are stable functions
     useEffect(() => {
-        if (activeTab === "settings") {
-            const loadPreferences = async () => {
-                try {
-                    const response = await fetch("/api/user/preferences");
-                    if (response.ok) {
-                        const data = (await response.json()) as {
-                            preferredLanguages: string[];
-                            difficultyPreference: number;
-                        };
-                        setSelectedLanguages(data.preferredLanguages || []);
-                        setDifficulty(data.difficultyPreference || 3);
-                    }
-                } catch (error) {
-                    console.error("Failed to load preferences:", error);
-                }
-            };
-            loadPreferences();
-        }
-    }, [activeTab]);
-
-    useEffect(() => {
-        if (activeTab === "repos") {
+        // Only fetch if we haven't already fetched this exact page
+        // This prevents duplicate fetches when agent updates both data AND page number
+        if (
+            activeTab === "repos" &&
+            lastFetchedReposPage.current !== reposPage
+        ) {
             fetchRepos(reposPage);
         } else if (activeTab === "list") {
-            fetchRecommendedIssues(issuesPage, selectedRepo || undefined);
+            // Use stored filters if available (from agent), otherwise just use selectedRepo
+            const filters = issuesFilters
+                ? {
+                      repoFilter: issuesFilters.repoFilter,
+                      languages: issuesFilters.languages,
+                      difficulty: issuesFilters.difficulty,
+                  }
+                : selectedRepo
+                ? { repoFilter: selectedRepo }
+                : undefined;
+
+            // Serialize filters for comparison
+            const currentFiltersString = JSON.stringify(filters || {});
+
+            // Fetch if: page changed, selectedRepo changed, or filters changed
+            if (
+                lastFetchedIssuesPage.current !== issuesPage ||
+                lastFetchedSelectedRepo.current !== (selectedRepo || null) ||
+                lastFetchedFilters.current !== currentFiltersString
+            ) {
+                lastFetchedFilters.current = currentFiltersString;
+                fetchRecommendedIssues(issuesPage, filters);
+            }
         }
-    }, [
-        activeTab,
-        reposPage,
-        issuesPage,
-        selectedRepo,
-        fetchRepos,
-        fetchRecommendedIssues,
-    ]);
+    }, [activeTab, reposPage, issuesPage, selectedRepo, issuesFilters]);
 
     const handleSelectIssue = (issue: Issue) => {
         setSelectedIssue(issue);
@@ -412,7 +468,10 @@ export function DashboardView() {
         setActiveTab("list");
     };
 
-    const toggleFavouriteRepo = async (repoId: number, e: React.MouseEvent) => {
+    const toggleFavouriteRepoHandler = async (
+        repoId: number,
+        e: React.MouseEvent
+    ) => {
         e.stopPropagation();
         const newFavourites = new Set(favouriteRepos);
         if (newFavourites.has(repoId)) {
@@ -436,7 +495,7 @@ export function DashboardView() {
         }
     };
 
-    const toggleFavouriteIssue = async (
+    const toggleFavouriteIssueHandler = async (
         issueId: number,
         e: React.MouseEvent
     ) => {
@@ -460,77 +519,6 @@ export function DashboardView() {
             });
         } catch (error) {
             console.error("Failed to update favourite:", error);
-        }
-    };
-
-    const toggleLanguage = (lang: string) => {
-        setSelectedLanguages((prev) =>
-            prev.includes(lang)
-                ? prev.filter((l) => l !== lang)
-                : [...prev, lang]
-        );
-    };
-
-    const handleScanGitHub = async () => {
-        setScanningGitHub(true);
-        try {
-            const initResponse = await fetch("/api/agent/initialize", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!initResponse.ok) {
-                throw new Error("Failed to initialize agent");
-            }
-
-            const res = await fetch("/api/agent/languages", {
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-            const data = (await res.json()) as {
-                languages: string[];
-            };
-
-            for (const l of data.languages.sort()) {
-                if (selectedLanguages.includes(l)) continue;
-                toggleLanguage(l);
-                await new Promise((res) => setTimeout(res, 50));
-            }
-        } catch (error) {
-            console.error("Failed to scan GitHub:", error);
-        } finally {
-            setScanningGitHub(false);
-        }
-    };
-
-    const handleSaveSettings = async () => {
-        setSavingSettings(true);
-        try {
-            const response = await fetch("/api/user/preferences", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    preferredLanguages: selectedLanguages,
-                    difficultyPreference: difficulty,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to save preferences");
-            }
-
-            setIssuesPage(1);
-            setReposPage(1);
-            setActiveTab("overview");
-        } catch (error) {
-            console.error("Failed to save settings:", error);
-        } finally {
-            setSavingSettings(false);
         }
     };
 
@@ -652,7 +640,7 @@ export function DashboardView() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={(e) =>
-                                                        toggleFavouriteRepo(
+                                                        toggleFavouriteRepoHandler(
                                                             repo.id,
                                                             e
                                                         )
@@ -682,7 +670,7 @@ export function DashboardView() {
                                             <div className="flex gap-2 flex-wrap">
                                                 {repo.languages
                                                     .slice(0, 3)
-                                                    .map((lang) => {
+                                                    .map((lang: string) => {
                                                         const colors =
                                                             getLanguageColor(
                                                                 lang
@@ -707,8 +695,8 @@ export function DashboardView() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() =>
-                                                setReposPage((p) =>
-                                                    Math.max(1, p - 1)
+                                                setReposPage(
+                                                    Math.max(1, reposPage - 1)
                                                 )
                                             }
                                             disabled={
@@ -726,10 +714,10 @@ export function DashboardView() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() =>
-                                                setReposPage((p) =>
+                                                setReposPage(
                                                     Math.min(
                                                         reposTotalPages,
-                                                        p + 1
+                                                        reposPage + 1
                                                     )
                                                 )
                                             }
@@ -748,25 +736,103 @@ export function DashboardView() {
                     </TabsContent>
 
                     <TabsContent value="list" className="mt-0 space-y-4">
-                        {selectedRepo && (
+                        {hasActiveFilters() && (
                             <Card className="bg-white/90 backdrop-blur-sm shadow-lg py-3">
-                                <CardContent className="flex items-center justify-between">
-                                    <p className="text-sm">
-                                        Showing issues from{" "}
-                                        <span className="font-semibold">
-                                            {selectedRepo}
-                                        </span>
-                                    </p>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            setSelectedRepo(null);
-                                            setIssuesPage(1);
-                                        }}
-                                    >
-                                        Clear filter
-                                    </Button>
+                                <CardContent className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium">
+                                            Active Filters:
+                                        </p>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                setSelectedRepo(null);
+                                                setIssuesFilters({});
+                                                setIssuesPage(1);
+                                            }}
+                                        >
+                                            Clear all
+                                        </Button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(issuesFilters?.repoFilter ||
+                                            selectedRepo) && (
+                                            <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs">
+                                                <span>
+                                                    Repository:{" "}
+                                                    {issuesFilters?.repoFilter ||
+                                                        selectedRepo}
+                                                </span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-4 w-4 p-0 hover:bg-blue-200"
+                                                    onClick={() => {
+                                                        setSelectedRepo(null);
+                                                        setIssuesFilters({
+                                                            ...issuesFilters,
+                                                            repoFilter:
+                                                                undefined,
+                                                        });
+                                                        setIssuesPage(1);
+                                                    }}
+                                                >
+                                                    ×
+                                                </Button>
+                                            </div>
+                                        )}
+                                        {issuesFilters?.languages &&
+                                            issuesFilters.languages.length >
+                                                0 && (
+                                                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-md text-xs">
+                                                    <span>
+                                                        Languages:{" "}
+                                                        {issuesFilters.languages.join(
+                                                            ", "
+                                                        )}
+                                                    </span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-4 w-4 p-0 hover:bg-green-200"
+                                                        onClick={() => {
+                                                            setIssuesFilters({
+                                                                ...issuesFilters,
+                                                                languages:
+                                                                    undefined,
+                                                            });
+                                                            setIssuesPage(1);
+                                                        }}
+                                                    >
+                                                        ×
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        {issuesFilters?.difficulty && (
+                                            <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-md text-xs">
+                                                <span>
+                                                    Difficulty:{" "}
+                                                    {issuesFilters.difficulty}/5
+                                                </span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-4 w-4 p-0 hover:bg-purple-200"
+                                                    onClick={() => {
+                                                        setIssuesFilters({
+                                                            ...issuesFilters,
+                                                            difficulty:
+                                                                undefined,
+                                                        });
+                                                        setIssuesPage(1);
+                                                    }}
+                                                >
+                                                    ×
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         )}
@@ -819,7 +885,7 @@ export function DashboardView() {
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={(e) =>
-                                                            toggleFavouriteIssue(
+                                                            toggleFavouriteIssueHandler(
                                                                 issue.id,
                                                                 e
                                                             )
@@ -848,7 +914,7 @@ export function DashboardView() {
                                             <div className="flex gap-2 flex-wrap">
                                                 {issue.languages
                                                     .slice(0, 3)
-                                                    .map((lang) => {
+                                                    .map((lang: string) => {
                                                         const colors =
                                                             getLanguageColor(
                                                                 lang
@@ -873,8 +939,8 @@ export function DashboardView() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() =>
-                                                setIssuesPage((p) =>
-                                                    Math.max(1, p - 1)
+                                                setIssuesPage(
+                                                    Math.max(1, issuesPage - 1)
                                                 )
                                             }
                                             disabled={
@@ -892,10 +958,10 @@ export function DashboardView() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() =>
-                                                setIssuesPage((p) =>
+                                                setIssuesPage(
                                                     Math.min(
                                                         issuesTotalPages,
-                                                        p + 1
+                                                        issuesPage + 1
                                                     )
                                                 )
                                             }
@@ -1022,7 +1088,7 @@ export function DashboardView() {
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={(e) =>
-                                                            toggleFavouriteRepo(
+                                                            toggleFavouriteRepoHandler(
                                                                 repo.id,
                                                                 e
                                                             )
@@ -1041,7 +1107,7 @@ export function DashboardView() {
                                                 <div className="flex gap-2 flex-wrap mt-2">
                                                     {repo.languages
                                                         .slice(0, 3)
-                                                        .map((lang) => {
+                                                        .map((lang: string) => {
                                                             const colors =
                                                                 getLanguageColor(
                                                                     lang
@@ -1100,7 +1166,7 @@ export function DashboardView() {
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={(e) =>
-                                                            toggleFavouriteIssue(
+                                                            toggleFavouriteIssueHandler(
                                                                 issue.id,
                                                                 e
                                                             )
@@ -1113,7 +1179,7 @@ export function DashboardView() {
                                                 <div className="flex gap-2 flex-wrap mt-2">
                                                     {issue.languages
                                                         .slice(0, 3)
-                                                        .map((lang) => {
+                                                        .map((lang: string) => {
                                                             const colors =
                                                                 getLanguageColor(
                                                                     lang
@@ -1135,130 +1201,20 @@ export function DashboardView() {
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="settings" className="mt-0 space-y-6">
-                        <div>
-                            <h3 className="text-lg font-semibold text-white mb-4">
-                                Language Preferences
-                            </h3>
-                            <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
-                                <CardContent>
-                                    <div className="flex justify-center flex-wrap gap-2">
-                                        {Array.from(
-                                            new Set([
-                                                ...COMMON_LANGUAGES,
-                                                ...selectedLanguages,
-                                            ])
-                                        )
-                                            .sort()
-                                            .map((lang) => (
-                                                <Button
-                                                    key={lang}
-                                                    variant={
-                                                        selectedLanguages.includes(
-                                                            lang
-                                                        )
-                                                            ? "default"
-                                                            : "outline"
-                                                    }
-                                                    className={`px-4 py-2 rounded-full transition-all ${
-                                                        selectedLanguages.includes(
-                                                            lang
-                                                        ) && "shadow-lg"
-                                                    }`}
-                                                    onClick={() =>
-                                                        toggleLanguage(lang)
-                                                    }
-                                                >
-                                                    {lang}
-                                                </Button>
-                                            ))}
-                                    </div>
-                                    <div className="flex justify-between mt-3">
-                                        <p className="text-sm text-muted-foreground mt-4 text-center">
-                                            {selectedLanguages.length} language
-                                            {selectedLanguages.length !== 1
-                                                ? "s"
-                                                : ""}{" "}
-                                            selected
-                                        </p>
-                                        <Button
-                                            variant="outline"
-                                            className="w-fit justify-start"
-                                            onClick={handleScanGitHub}
-                                            disabled={scanningGitHub}
-                                        >
-                                            <Github className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div>
-                            <h3 className="text-lg font-semibold text-white mb-4">
-                                Difficulty Preference
-                            </h3>
-                            <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
-                                <CardContent className="pt-6 space-y-6">
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between text-sm">
-                                            <span>Beginner</span>
-                                            <span className="font-semibold">
-                                                Level {difficulty}
-                                            </span>
-                                            <span>Advanced</span>
-                                        </div>
-                                        <Slider
-                                            value={[difficulty]}
-                                            onValueChange={(value) =>
-                                                setDifficulty(value[0])
-                                            }
-                                            min={1}
-                                            max={5}
-                                            step={1}
-                                            className="w-full"
-                                        />
-                                    </div>
-
-                                    <div className="p-4 rounded-lg bg-muted min-h-18">
-                                        <p className="text-sm">
-                                            {difficulty === 1 &&
-                                                "Perfect for absolute beginners. Issues include clear instructions and minimal code changes."}
-                                            {difficulty === 2 &&
-                                                "Good for beginners with basic programming knowledge. Issues may require simple fixes."}
-                                            {difficulty === 3 &&
-                                                "Intermediate level. Some problem-solving and code reading required."}
-                                            {difficulty === 4 &&
-                                                "For developers comfortable with the language. May involve complex logic."}
-                                            {difficulty === 5 &&
-                                                "Advanced issues requiring deep understanding of the codebase."}
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setActiveTab("overview")}
-                                className="bg-white/90"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleSaveSettings}
-                                disabled={
-                                    selectedLanguages.length === 0 ||
-                                    savingSettings
-                                }
-                                size="lg"
-                            >
-                                {savingSettings
-                                    ? "Saving..."
-                                    : "Save Preferences"}
-                            </Button>
-                        </div>
+                    <TabsContent value="settings" className="mt-0">
+                        <SettingsView
+                            onSave={() => {
+                                // After saving, update context state and navigate
+                                // The SettingsView already saved to DB
+                                // We need to refresh the context from DB or refetch
+                                setIssuesPage(1);
+                                setReposPage(1);
+                                setActiveTab("overview");
+                                // Optionally: refetch preferences to update context
+                                // For now, the context will update on next page load
+                            }}
+                            onCancel={() => setActiveTab("overview")}
+                        />
                     </TabsContent>
                 </div>
             </Tabs>
