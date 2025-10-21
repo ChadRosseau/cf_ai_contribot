@@ -8,8 +8,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { authClient } from "@/lib/auth-client";
-import { LogOut, Palette } from "lucide-react";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LogOut } from "lucide-react";
 
 interface AccountDialogProps {
 	children: React.ReactNode;
@@ -57,13 +56,6 @@ export function AccountDialog({ children }: AccountDialogProps) {
 						)}
 					</div>
 					<div className="flex flex-col gap-4 w-full mt-6">
-						<div className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-card">
-							<span className="text-sm font-medium flex items-center gap-2">
-								<Palette className="h-4 w-4" />
-								Theme
-							</span>
-							<ThemeToggle />
-						</div>
 						<Button
 							onClick={signOut}
 							variant="outline"

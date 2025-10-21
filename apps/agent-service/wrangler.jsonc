@@ -1,45 +1,45 @@
 {
-    "$schema": "./node_modules/wrangler/config-schema.json",
-    "name": "contribot-agent-service",
-    "main": "./src/index.ts",
-    "compatibility_date": "2025-04-01",
-    "compatibility_flags": ["nodejs_compat"],
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "contribot-agent-service",
+	"main": "./src/index.ts",
+	"compatibility_date": "2025-04-01",
+	"compatibility_flags": ["nodejs_compat"],
 
-    "observability": {
-        "enabled": true
-    },
+	"observability": {
+		"enabled": true
+	},
 
-    "d1_databases": [
-        {
-            "binding": "DB",
-            "database_name": "contribot",
-            "database_id": "6bf3bf79-2dc9-429e-a61e-6110868018c8",
-            "remote": true
-        }
-    ],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "contribot",
+			"database_id": "6bf3bf79-2dc9-429e-a61e-6110868018c8",
+			"remote": true
+		}
+	],
 
-    "ai": {
-        "binding": "AI",
-        "remote": true
-    },
+	"ai": {
+		"binding": "AI",
+		"remote": true
+	},
 
-    "durable_objects": {
-        "bindings": [
-            {
-                "name": "ContribotAgent",
-                "class_name": "ContribotAgent"
-            }
-        ]
-    },
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "ContribotAgent",
+				"class_name": "ContribotAgent"
+			}
+		]
+	},
 
-    "migrations": [
-        {
-            "tag": "v1",
-            "new_sqlite_classes": ["ContribotAgent"]
-        }
-    ],
+	"migrations": [
+		{
+			"tag": "v2",
+			"new_sqlite_classes": ["ContribotAgent"]
+		}
+	],
 
-    "vars": {
-        "GITHUB_MCP_SERVER_URL": "https://api.githubcopilot.com/mcp/"
-    }
+	"vars": {
+		"GITHUB_MCP_SERVER_URL": "https://api.githubcopilot.com/mcp/"
+	}
 }

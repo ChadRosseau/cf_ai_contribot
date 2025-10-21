@@ -152,6 +152,41 @@ export async function getIssueById(db: DrizzleD1Database, id: number) {
 }
 
 /**
+ * Get issue by ID with full details (repo info and AI summary)
+ */
+export async function getIssueDetailsById(db: DrizzleD1Database, id: number) {
+	const results = await db
+		.select({
+			id: issues.id,
+			issueNumber: issues.githubIssueNumber,
+			title: issues.title,
+			body: issues.body,
+			url: issues.githubUrl,
+			state: issues.state,
+			commentCount: issues.commentCount,
+			owner: repos.owner,
+			repoName: repos.name,
+			languages: repos.languagesOrdered,
+			intro: aiSummaries.issueIntro,
+			difficulty: aiSummaries.difficultyScore,
+			firstSteps: aiSummaries.firstSteps,
+		})
+		.from(issues)
+		.innerJoin(repos, eq(issues.repoId, repos.id))
+		.leftJoin(
+			aiSummaries,
+			and(
+				eq(aiSummaries.entityType, "issue"),
+				eq(aiSummaries.entityId, issues.id),
+			),
+		)
+		.where(eq(issues.id, id))
+		.limit(1);
+
+	return results[0];
+}
+
+/**
  * Get all open issues
  */
 export async function getOpenIssues(db: DrizzleD1Database) {
@@ -232,13 +267,20 @@ export async function getPaginatedRecommendedIssues(
 	page: number,
 	limit: number,
 	repoFilter?: string,
+	exactDifficulty?: boolean,
 ): Promise<RecommendedIssue[]> {
 	try {
 		const offset = (page - 1) * limit;
-		const difficultyRange = {
-			min: difficultyPreference - 1,
-			max: difficultyPreference + 1,
-		};
+		// Use exact match when filtering, range when recommending
+		const difficultyRange = exactDifficulty
+			? {
+					min: difficultyPreference,
+					max: difficultyPreference,
+				}
+			: {
+					min: difficultyPreference - 1,
+					max: difficultyPreference + 1,
+				};
 
 		// Build language filter conditions
 		const languageConditions =
@@ -261,6 +303,24 @@ export async function getPaginatedRecommendedIssues(
 				) as any;
 			}
 		}
+
+		// Build difficulty condition
+		// When exact filtering, don't include NULL scores (unscored issues)
+		// When using preference range, include NULL scores as they might be good matches
+		const difficultyCondition = exactDifficulty
+			? between(
+					aiSummaries.difficultyScore,
+					difficultyRange.min,
+					difficultyRange.max,
+				)
+			: or(
+					between(
+						aiSummaries.difficultyScore,
+						difficultyRange.min,
+						difficultyRange.max,
+					),
+					isNull(aiSummaries.difficultyScore),
+				);
 
 		const result = await db
 			.select({
@@ -290,14 +350,7 @@ export async function getPaginatedRecommendedIssues(
 					eq(issues.state, "open"),
 					languageConditions,
 					repoCondition,
-					or(
-						between(
-							aiSummaries.difficultyScore,
-							difficultyRange.min,
-							difficultyRange.max,
-						),
-						isNull(aiSummaries.difficultyScore),
-					),
+					difficultyCondition,
 				),
 			)
 			.orderBy(desc(issues.updatedAt))
@@ -331,12 +384,19 @@ export async function getRecommendedIssuesCount(
 	preferredLanguages: string[],
 	difficultyPreference: number,
 	repoFilter?: string,
+	exactDifficulty?: boolean,
 ): Promise<number> {
 	try {
-		const difficultyRange = {
-			min: difficultyPreference - 1,
-			max: difficultyPreference + 1,
-		};
+		// Use exact match when filtering, range when recommending
+		const difficultyRange = exactDifficulty
+			? {
+					min: difficultyPreference,
+					max: difficultyPreference,
+				}
+			: {
+					min: difficultyPreference - 1,
+					max: difficultyPreference + 1,
+				};
 
 		// Build language filter conditions
 		const languageConditions =
@@ -360,6 +420,24 @@ export async function getRecommendedIssuesCount(
 			}
 		}
 
+		// Build difficulty condition
+		// When exact filtering, don't include NULL scores (unscored issues)
+		// When using preference range, include NULL scores as they might be good matches
+		const difficultyCondition = exactDifficulty
+			? between(
+					aiSummaries.difficultyScore,
+					difficultyRange.min,
+					difficultyRange.max,
+				)
+			: or(
+					between(
+						aiSummaries.difficultyScore,
+						difficultyRange.min,
+						difficultyRange.max,
+					),
+					isNull(aiSummaries.difficultyScore),
+				);
+
 		const result = await db
 			.select({ count: sql<number>`count(*)` })
 			.from(issues)
@@ -376,14 +454,7 @@ export async function getRecommendedIssuesCount(
 					eq(issues.state, "open"),
 					languageConditions,
 					repoCondition,
-					or(
-						between(
-							aiSummaries.difficultyScore,
-							difficultyRange.min,
-							difficultyRange.max,
-						),
-						isNull(aiSummaries.difficultyScore),
-					),
+					difficultyCondition,
 				),
 			);
 

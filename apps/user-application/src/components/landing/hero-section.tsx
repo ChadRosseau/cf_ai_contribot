@@ -1,70 +1,106 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Github, Sparkles, Zap, Shield } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Github, Sparkles, ArrowRight } from "lucide-react";
 
-export function HeroSection() {
+interface HeroSectionProps {
+	isAuthenticated: boolean;
+	userName?: string;
+	onGetStarted: () => void;
+	onGoToDashboard: () => void;
+}
+
+export function HeroSection({
+	isAuthenticated,
+	userName,
+	onGetStarted,
+	onGoToDashboard,
+}: HeroSectionProps) {
 	return (
-		<section className="relative px-6 lg:px-8 py-24 sm:py-32">
-			<div className="mx-auto max-w-4xl text-center">
-				<div className="mb-8 flex flex-wrap justify-center gap-2">
-					<Badge variant="secondary" className="mb-4">
-						<Sparkles className="mr-1 h-3 w-3" />
-						Production-Ready
-					</Badge>
-					<Badge variant="secondary" className="mb-4">
-						<Zap className="mr-1 h-3 w-3" />
-						Edge-Optimized
-					</Badge>
-					<Badge variant="secondary" className="mb-4">
-						<Shield className="mr-1 h-3 w-3" />
-						Type-Safe
-					</Badge>
-				</div>
-
-				<h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-					Modern SaaS
-					<span className="block text-primary">Starter Kit</span>
-				</h1>
-
-				<p className="mt-6 text-lg leading-8 text-muted-foreground max-w-2xl mx-auto">
-					Ship your SaaS faster with pre-configured authentication, database,
-					and payments. Built on TanStack Start with React 19, TypeScript, and
-					edge-ready infrastructure. Everything you need to launch your next
-					project.
-				</p>
-
-				<div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-					<Link to="/docs">
-						<Button size="lg" className="group">
-							Get Started
-							<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-						</Button>
-					</Link>
-
-					<Button variant="outline" size="lg" asChild>
-						<a
-							href="https://github.com/backpine/saas-kit"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex items-center"
-						>
-							<Github className="mr-2 h-4 w-4" />
-							View on GitHub
-						</a>
-					</Button>
-				</div>
+		<section className="relative overflow-hidden px-6 lg:px-8 pt-32 pb-24 sm:pt-40 sm:pb-32">
+			{/* Animated background gradients */}
+			<div className="absolute inset-0 -z-10">
+				<div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10" />
+				<div
+					className="absolute top-0 -left-4 w-72 h-72 bg-primary rounded-full mix-blend-normal filter blur-3xl opacity-30 animate-blob"
+					style={{ animationDelay: "0s" }}
+				/>
+				<div
+					className="absolute top-0 -right-4 w-72 h-72 bg-accent rounded-full mix-blend-normal filter blur-3xl opacity-30 animate-blob"
+					style={{ animationDelay: "2s" }}
+				/>
+				<div
+					className="absolute -bottom-8 left-20 w-72 h-72 bg-primary/70 rounded-full mix-blend-normal filter blur-3xl opacity-30 animate-blob"
+					style={{ animationDelay: "4s" }}
+				/>
 			</div>
 
-			{/* Background gradient */}
-			<div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-				<div
-					className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-primary to-secondary opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-					style={{
-						clipPath:
-							"polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-					}}
-				/>
+			<div className="mx-auto max-w-6xl text-center">
+				{/* Main headline */}
+				<h1 className="text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl animate-fade-in-up mb-6">
+					{isAuthenticated ? (
+						<>
+							Welcome back, <br></br>
+							<span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-[#FF6633]">
+								{userName || "Developer"}!
+							</span>
+						</>
+					) : (
+						<>
+							Make Your First
+							<br />
+							<span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-[#FF6633] animate-gradient-x">
+								Open Source Contribution
+							</span>
+						</>
+					)}
+				</h1>
+
+				{/* Subheading */}
+				<p className="mt-6 text-xl leading-8 text-muted-foreground max-w-3xl mx-auto animate-fade-in-up">
+					{isAuthenticated
+						? "Continue your open source journey with personalized recommendations and AI-powered guidance."
+						: "Discover beginner-friendly issues, understand codebases with AI assistance, and submit your first pull request with confidence."}
+				</p>
+
+				{/* CTA Buttons */}
+				<div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up">
+					{isAuthenticated ? (
+						<Button
+							size="lg"
+							className="text-lg px-8 py-6 group"
+							onClick={onGoToDashboard}
+						>
+							Go to Dashboard
+							<ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+						</Button>
+					) : (
+						<>
+							<Button
+								size="lg"
+								className="text-lg px-8 py-6 group"
+								onClick={onGetStarted}
+							>
+								<Github className="mr-2 h-5 w-5" />
+								Start with GitHub
+								<ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+							</Button>
+							<Button
+								size="lg"
+								variant="outline"
+								className="text-lg px-8 py-6"
+								onClick={() => {
+									document.getElementById("features")?.scrollIntoView({
+										behavior: "smooth",
+									});
+								}}
+							>
+								Learn More
+							</Button>
+						</>
+					)}
+				</div>
+
+				{/* Stats or social proof could go here if available */}
 			</div>
 		</section>
 	);

@@ -7,7 +7,10 @@ import { z } from "zod";
 import { getCurrentAgent } from "agents";
 import type { ContribotAgent } from "./agent";
 import { initDatabase } from "@repo/data-ops/database/setup";
-import { getPaginatedRecommendedIssues } from "@repo/data-ops/queries/issues";
+import {
+	getPaginatedRecommendedIssues,
+	getIssueDetailsById,
+} from "@repo/data-ops/queries/issues";
 import { getPaginatedRepos } from "@repo/data-ops/queries/repos";
 import {
 	toggleFavourite as toggleFavouriteInDb,
@@ -30,7 +33,7 @@ const suggestIssues = tool({
 		languages: z
 			.array(z.string())
 			.describe(
-				"Programming languages to filter by (e.g., ['TypeScript', 'Python'])",
+				"Programming languages to filter by (e.g., ['TypeScript', 'Python']). IMPORTANT: Only provide if user specifies languages. To search ALL languages, omit this parameter entirely.",
 			)
 			.optional(),
 		difficulty: z
@@ -38,12 +41,14 @@ const suggestIssues = tool({
 			.min(1)
 			.max(5)
 			.describe(
-				"Difficulty level from 1 (easiest) to 5 (hardest). Defaults to user's preference.",
+				"Exact difficulty level from 1 (easiest) to 5 (hardest). IMPORTANT: Only provide if user specifies a difficulty. Omit to use user's preference range.",
 			)
 			.optional(),
 		repoFilter: z
 			.string()
-			.describe("Optional repository filter in 'owner/repo' format")
+			.describe(
+				"Repository filter in 'owner/repo' format. Only provide if user specifies a specific repository.",
+			)
 			.optional(),
 		page: z
 			.number()
@@ -71,20 +76,34 @@ const suggestIssues = tool({
 		);
 
 		// Use provided filters or fall back to stored filters from last query
+		// When AI doesn't specify a filter, check if we have previous filters from dashboard state
+		// If not, use user preferences as final fallback
+		// Special case: if AI explicitly provides undefined (didn't specify), use empty array for languages (= search all)
 		const currentFilters = {
 			languages:
-				languages ||
-				agent.state.dashboardState.issuesFilters?.languages ||
-				preferences?.preferredLanguages ||
-				[],
+				languages !== undefined
+					? languages // AI specified languages (could be empty array or specific languages)
+					: agent.state.dashboardState.issuesFilters?.languages !== undefined
+						? agent.state.dashboardState.issuesFilters.languages // Use previous dashboard filter
+						: [], // No filter = search all languages (empty array means no language filter)
 			difficulty:
-				difficulty ??
-				agent.state.dashboardState.issuesFilters?.difficulty ??
-				preferences?.difficultyPreference ??
-				3,
+				difficulty !== undefined
+					? difficulty
+					: (agent.state.dashboardState.issuesFilters?.difficulty ??
+						preferences?.difficultyPreference ??
+						3),
 			repoFilter:
-				repoFilter ?? agent.state.dashboardState.issuesFilters?.repoFilter,
+				repoFilter !== undefined
+					? repoFilter
+					: agent.state.dashboardState.issuesFilters?.repoFilter,
 		};
+
+		// Use exact matching when AI explicitly sets any filter
+		// This ensures user gets what they asked for, not a range
+		const hasExplicitFilters =
+			languages !== undefined ||
+			difficulty !== undefined ||
+			repoFilter !== undefined;
 
 		const issues = await getPaginatedRecommendedIssues(
 			// biome-ignore lint/suspicious/noExplicitAny: DB type compatibility
@@ -94,6 +113,7 @@ const suggestIssues = tool({
 			page,
 			limit,
 			currentFilters.repoFilter,
+			hasExplicitFilters, // Use exact difficulty matching when explicitly filtered
 		);
 
 		// Update dashboard state with navigation, data, filters, and pagination
@@ -117,6 +137,7 @@ const suggestIssues = tool({
 			issuesCount: issues.length,
 			currentPage: page,
 			issues: issues.map((issue) => ({
+				id: issue.id, // Database ID for viewing issue details
 				title: issue.title,
 				url: issue.url,
 				repo: `${issue.owner}/${issue.repoName}`,
@@ -376,11 +397,124 @@ const updatePreferences = tool({
 });
 
 /**
+ * Get the current list of issues displayed to the user
+ * This is a resource tool that provides context to the AI
+ * Executes automatically
+ */
+const getCurrentIssues = tool({
+	description:
+		"Get the list of issues currently displayed in the dashboard. Use this to understand which issues the user is referring to when they say 'the first issue', 'the second one', 'that Python issue', etc. This gives you context about what the user is looking at.",
+	inputSchema: z.object({}),
+	execute: async () => {
+		console.log("[Tool] getCurrentIssues");
+		const { agent } = getCurrentAgent<ContribotAgent>();
+		if (!agent) throw new Error("Agent context not available");
+
+		const currentIssues = agent.state.dashboardState.issues || [];
+
+		if (currentIssues.length === 0) {
+			return {
+				success: false,
+				message:
+					"No issues are currently displayed. Use suggestIssues first to find issues.",
+				issues: [],
+			};
+		}
+
+		return {
+			success: true,
+			message: `Currently displaying ${currentIssues.length} issues.`,
+			issuesCount: currentIssues.length,
+			issues: currentIssues,
+		};
+	},
+});
+
+/**
+ * View/open a specific issue to show details
+ * Executes automatically
+ */
+const viewIssue = tool({
+	description:
+		"View, open, or show details of a specific issue from the search results. Use this when user wants to VIEW, OPEN, or SEE MORE about an issue (e.g., 'show me the first issue', 'open issue #2', 'view the third one', 'tell me more about that Python issue'). The issue must be from your recent suggestIssues results.",
+	inputSchema: z.object({
+		issueId: z
+			.number()
+			.describe(
+				"The database ID of the issue (use the 'id' field from suggestIssues results, NOT the GitHub issue number)",
+			),
+	}),
+	execute: async ({ issueId }) => {
+		console.log("[Tool] viewIssue:", { issueId });
+		const { agent } = getCurrentAgent<ContribotAgent>();
+		if (!agent) throw new Error("Agent context not available");
+
+		const db = initDatabase(agent.environment.DB);
+
+		// Get the full issue details
+		const issue = await getIssueDetailsById(
+			// biome-ignore lint/suspicious/noExplicitAny: DB type compatibility
+			db as any,
+			issueId,
+		);
+
+		if (!issue) {
+			return {
+				success: false,
+				message: `Issue with ID ${issueId} not found.`,
+			};
+		}
+
+		// Prepare the full issue object for the dashboard
+		const issueForDashboard = {
+			id: issue.id,
+			issueNumber: issue.issueNumber,
+			title: issue.title,
+			url: issue.url,
+			owner: issue.owner,
+			repoName: issue.repoName,
+			languages: issue.languages || [],
+			intro: issue.intro || "No summary available",
+			difficulty: issue.difficulty || 3,
+			firstSteps: issue.firstSteps || "Review the issue to get started",
+		};
+
+		// Update dashboard state to show the issue detail view
+		agent.updateDashboardState({
+			currentTab: "issue",
+			activeIssueId: issueId,
+			selectedIssue: issueForDashboard,
+		});
+		agent.broadcastStateUpdate();
+
+		// Return comprehensive issue details for the AI to present
+		return {
+			success: true,
+			message: `Opened issue details. The issue is now displayed in the Issue tab.`,
+			issue: {
+				title: issue.title,
+				url: issue.url,
+				repo: `${issue.owner}/${issue.repoName}`,
+				difficulty: issue.difficulty || 3,
+				languages: issue.languages?.slice(0, 5) || [],
+				intro: issue.intro || "No summary available",
+				firstSteps: issue.firstSteps || "Review the issue to get started",
+				description:
+					issue.body?.substring(0, 500) || "No description available",
+				commentCount: issue.commentCount,
+			},
+		};
+	},
+});
+
+/**
  * Export all available tools
  */
 export const tools = {
 	suggestIssues,
 	suggestRepos,
+	getCurrentIssues,
+	viewIssue,
 	forkRepository,
 	createBranch,
 	commentOnIssue,

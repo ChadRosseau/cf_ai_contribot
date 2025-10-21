@@ -15,17 +15,34 @@ declare namespace Cloudflare {
 		GITHUB_CLIENT_ID: string;
 		GITHUB_CLIENT_SECRET: string;
 		OPENAI_API_KEY: string;
-		ContribotAgent: DurableObjectNamespace<import("./src/index").ContribotAgent>;
+		ContribotAgent: DurableObjectNamespace<
+			import("./src/index").ContribotAgent
+		>;
 		DB: D1Database;
 		AI: Ai;
 	}
 }
 interface BaseEnv extends Cloudflare.Env {}
 type StringifyValues<EnvType extends Record<string, unknown>> = {
-	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
+	[Binding in keyof EnvType]: EnvType[Binding] extends string
+		? EnvType[Binding]
+		: string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "GITHUB_MCP_SERVER_URL" | "CLOUDFLARE_DATABASE_ID" | "CLOUDFLARE_ACCOUNT_ID" | "CLOUDFLARE_D1_TOKEN" | "BETTER_AUTH_SECRET" | "GITHUB_CLIENT_ID" | "GITHUB_CLIENT_SECRET" | "OPENAI_API_KEY">> {}
+	interface ProcessEnv
+		extends StringifyValues<
+			Pick<
+				Cloudflare.Env,
+				| "GITHUB_MCP_SERVER_URL"
+				| "CLOUDFLARE_DATABASE_ID"
+				| "CLOUDFLARE_ACCOUNT_ID"
+				| "CLOUDFLARE_D1_TOKEN"
+				| "BETTER_AUTH_SECRET"
+				| "GITHUB_CLIENT_ID"
+				| "GITHUB_CLIENT_SECRET"
+				| "OPENAI_API_KEY"
+			>
+		> {}
 }
 
 // Begin runtime types

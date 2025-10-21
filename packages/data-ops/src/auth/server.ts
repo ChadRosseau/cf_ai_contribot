@@ -7,20 +7,24 @@ import {
 	auth_user,
 } from "@/drizzle/auth-schema";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import type { BetterAuthOptions } from "better-auth";
 
 let betterAuth: ReturnType<typeof createBetterAuth>;
 
-export function setAuth(
-	config: Omit<Parameters<typeof createBetterAuth>[0], "database"> & {
-		adapter: {
-			drizzleDb: ReturnType<typeof getDb>;
-			provider: Parameters<typeof drizzleAdapter>[1]["provider"];
-		};
-	},
-) {
+export function setAuth(config: {
+	secret?: string;
+	baseURL?: string;
+	trustedOrigins?: string[];
+	socialProviders?: BetterAuthOptions["socialProviders"];
+	adapter: {
+		drizzleDb: ReturnType<typeof getDb>;
+		provider: Parameters<typeof drizzleAdapter>[1]["provider"];
+	};
+}) {
+	const { adapter, ...authConfig } = config;
 	betterAuth = createBetterAuth({
-		database: drizzleAdapter(config.adapter.drizzleDb, {
-			provider: config.adapter.provider,
+		database: drizzleAdapter(adapter.drizzleDb, {
+			provider: adapter.provider,
 			schema: {
 				auth_user,
 				auth_account,
@@ -28,7 +32,7 @@ export function setAuth(
 				auth_verification,
 			},
 		}),
-		...config,
+		...authConfig,
 	});
 	return betterAuth;
 }

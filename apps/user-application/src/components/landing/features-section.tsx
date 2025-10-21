@@ -5,192 +5,192 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-	Route,
-	Database,
-	Zap,
-	Shield,
-	Palette,
-	Code,
-	Server,
-	Layers,
+	MessageSquare,
+	Search,
 	GitBranch,
+	Zap,
+	Target,
+	Brain,
+	Heart,
+	Clock,
+	Shield,
 } from "lucide-react";
 
-const features = [
+const mainFeatures = [
 	{
-		icon: Route,
-		title: "TanStack Router",
+		icon: Search,
+		title: "Intelligent Discovery",
 		description:
-			"Type-safe, file-based routing with powerful features like nested layouts, loaders, and search params validation.",
-		badge: "Type-Safe",
+			"Automated repository scanning finds beginner-friendly projects. Continuous tracking keeps issue data fresh with twice-daily updates.",
+		highlights: [
+			"Curated repository sources",
+			"Real-time issue tracking",
+			"Smart change detection",
+		],
 	},
 	{
-		icon: Database,
-		title: "TanStack Query",
+		icon: Brain,
+		title: "AI-Powered Analysis",
 		description:
-			"Powerful data synchronization with server state management, caching, and background updates built-in.",
-		badge: "Server State",
+			"Get one-paragraph repository summaries, concise issue explanations, and automated difficulty scoring from 1-5 to match your skill level.",
+		highlights: [
+			"Repository overviews",
+			"Issue context & first steps",
+			"Difficulty assessment",
+		],
 	},
 	{
-		icon: Code,
-		title: "React 19",
+		icon: MessageSquare,
+		title: "Conversational Interface",
 		description:
-			"Latest React with concurrent features, improved performance, and modern development patterns.",
-		badge: "Latest",
+			"Real-time chat with sub-50ms latency. Your personal AI agent remembers context and guides you through every step of contributing.",
+		highlights: [
+			"WebSocket-based chat",
+			"Stateful conversation",
+			"Natural language actions",
+		],
+	},
+	{
+		icon: Target,
+		title: "Personalized Experience",
+		description:
+			"Filter by programming language, match issues to your skill level, and scan your GitHub profile to auto-detect your experience.",
+		highlights: [
+			"Language preferences",
+			"Difficulty matching",
+			"Quick onboarding",
+		],
+	},
+	{
+		icon: GitBranch,
+		title: "GitHub Actions",
+		description:
+			"Fork repositories, create branches, comment on issues, and submit pull requests—all through chat or with one-click buttons.",
+		highlights: [
+			"Repository forking",
+			"Automated branch setup",
+			"PR creation workflow",
+		],
 	},
 	{
 		icon: Zap,
-		title: "Vite",
+		title: "Edge-Powered Performance",
 		description:
-			"Lightning-fast build tool with hot module replacement and optimized production builds.",
-		badge: "Fast",
-	},
-	{
-		icon: Shield,
-		title: "TypeScript",
-		description:
-			"Full TypeScript support with strict typing, IntelliSense, and compile-time error checking.",
-		badge: "Type-Safe",
-	},
-	{
-		icon: Palette,
-		title: "Tailwind CSS v4",
-		description:
-			"Modern utility-first CSS framework with CSS variables and a comprehensive design system.",
-		badge: "Styling",
-	},
-	{
-		icon: Server,
-		title: "SSR Ready",
-		description:
-			"Server-side rendering support with seamless hydration and SEO optimization out of the box.",
-		badge: "Performance",
-	},
-	{
-		icon: Layers,
-		title: "Shadcn/UI",
-		description:
-			"Beautiful, accessible component library with customizable themes and modern design patterns.",
-		badge: "Components",
+			"Built on Cloudflare's global network for lightning-fast responses. Stateful AI agents run on Durable Objects for reliable, scalable performance.",
+		highlights: [
+			"Global edge deployment",
+			"Sub-50ms latency",
+			"Automatic scaling",
+		],
 	},
 ];
 
-const templateFeatures = [
+const additionalFeatures = [
 	{
-		image: "/cloudflare.png",
-		title: "Edge Database",
+		icon: Zap,
+		title: "Lightning Fast",
 		description:
-			"Serverless PostgreSQL with Cloudflare D1 or Hyperdrive. Edge-optimized with connection pooling and HTTP proxy to prevent connection overwhelm.",
-		badge: "Database",
-		highlight: true,
+			"Sub-50ms response times powered by Cloudflare's global edge network",
 	},
 	{
-		image: "/better-auth.png",
-		title: "Better Auth",
+		icon: Clock,
+		title: "Always Fresh",
 		description:
-			"Complete authentication solution with social providers, email/password, and session management. Database-agnostic and edge-compatible.",
-		badge: "Authentication",
-		highlight: true,
+			"Issue database updated twice daily to show the latest opportunities",
 	},
 	{
-		image: "/polar.png",
-		title: "Polar Payments",
-		description:
-			"Modern subscription management and payment processing. No webhooks needed, developer-focused API with built-in product metadata.",
-		badge: "Payments",
-		highlight: true,
+		icon: Shield,
+		title: "Safe & Secure",
+		description: "Confirmation required for all write operations—no surprises",
 	},
 	{
-		image: "/pnpm.webp",
-		title: "Monorepo Architecture",
+		icon: Heart,
+		title: "Beginner Friendly",
 		description:
-			"Organized workspace structure with pnpm. Shared components, utilities, and configurations across multiple applications.",
-		badge: "Architecture",
-		highlight: true,
+			"Built specifically for developers making their first contributions",
 	},
 ];
 
 export function FeaturesSection() {
 	return (
-		<section id="features" className="py-24 sm:py-32">
+		// eslint-disable-next-line react/no-unknown-property
+		<section id="features" className="py-24 sm:py-32 bg-muted/30">
 			<div className="mx-auto max-w-7xl px-6 lg:px-8">
-				{/* Template Features Section */}
-				<div className="mx-auto max-w-2xl text-center">
-					<h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-						Production-Ready SaaS Template
+				{/* Section Header */}
+				<div className="mx-auto max-w-2xl text-center mb-16">
+					<h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl mb-4">
+						Everything you need to<br></br>
+						<span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-[#FF6633]">
+							{" "}
+							start contributing
+						</span>
 					</h2>
-					<p className="mt-4 text-lg text-muted-foreground">
-						Pre-configured with authentication, database, and payments - ready
-						to deploy
+					<p className="text-lg text-muted-foreground">
+						Powered by AI and built on Cloudflare's edge platform
 					</p>
 				</div>
 
-				<div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-6 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-2 xl:grid-cols-4">
-					{templateFeatures.map((feature) => {
+				{/* Main Features Grid */}
+				<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16">
+					{mainFeatures.map((feature, index) => {
+						const IconComponent = feature.icon;
 						return (
 							<Card
 								key={feature.title}
-								className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-primary/20"
+								className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-primary/10 hover:border-primary/30"
+								style={{
+									animationDelay: `${index * 100}ms`,
+								}}
 							>
 								<CardHeader>
-									<div className="flex items-center justify-between mb-2">
-										<div className="flex h-12 w-12 items-center justify-center rounded-lg border bg-background p-2">
-											<img
-												src={feature.image}
-												alt={feature.title}
-												className="h-full w-full object-contain"
-											/>
+									<div className="flex items-start justify-between mb-3">
+										<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 group-hover:from-primary/30 group-hover:to-accent/30 transition-all">
+											<IconComponent className="h-6 w-6 text-primary" />
 										</div>
-										<Badge variant="default" className="text-xs">
-											{feature.badge}
-										</Badge>
 									</div>
-									<CardTitle className="text-lg">{feature.title}</CardTitle>
+									<CardTitle className="text-xl">{feature.title}</CardTitle>
 								</CardHeader>
 								<CardContent>
-									<CardDescription className="text-sm leading-relaxed">
+									<CardDescription className="text-sm leading-relaxed mb-4">
 										{feature.description}
 									</CardDescription>
+									<ul className="space-y-2">
+										{feature.highlights.map((highlight) => (
+											<li
+												key={highlight}
+												className="text-xs text-muted-foreground flex items-center gap-2"
+											>
+												<div className="h-1.5 w-1.5 rounded-full bg-primary" />
+												{highlight}
+											</li>
+										))}
+									</ul>
 								</CardContent>
 							</Card>
 						);
 					})}
 				</div>
 
-				{/* Core Technologies Section */}
-				<div className="mx-auto max-w-2xl text-center mt-24">
-					<h3 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-						Built with Modern Technologies
-					</h3>
-					<p className="mt-4 text-lg text-muted-foreground">
-						A carefully curated stack of the best tools and libraries for React
-						development
-					</p>
-				</div>
-
-				<div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-6 lg:mx-0 lg:max-w-none lg:grid-cols-2 xl:grid-cols-4">
-					{features.map((feature) => {
+				{/* Additional Features */}
+				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+					{additionalFeatures.map((feature) => {
 						const IconComponent = feature.icon;
 						return (
 							<Card
 								key={feature.title}
-								className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+								className="text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-card/50"
 							>
 								<CardHeader>
-									<div className="flex items-center justify-between">
+									<div className="flex justify-center mb-3">
 										<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
 											<IconComponent className="h-5 w-5 text-primary" />
 										</div>
-										<Badge variant="outline" className="text-xs">
-											{feature.badge}
-										</Badge>
 									</div>
-									<CardTitle className="text-lg">{feature.title}</CardTitle>
+									<CardTitle className="text-base">{feature.title}</CardTitle>
 								</CardHeader>
 								<CardContent>
-									<CardDescription className="text-sm leading-relaxed">
+									<CardDescription className="text-sm">
 										{feature.description}
 									</CardDescription>
 								</CardContent>

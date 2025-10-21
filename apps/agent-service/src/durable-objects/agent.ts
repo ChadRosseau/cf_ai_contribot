@@ -12,6 +12,7 @@ import {
 	convertToModelMessages,
 	createUIMessageStreamResponse,
 	type ToolSet,
+	stepCountIs,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { GitHubApiClient } from "../api/github-client";
@@ -33,6 +34,7 @@ interface DashboardState {
 		| "settings";
 	activeIssueId?: number;
 	activeRepoId?: number;
+	selectedIssue?: unknown; // Full issue object for issue detail view
 	lastAction?: string;
 	forkedRepoName?: string;
 	branchName?: string;
@@ -71,7 +73,7 @@ export class ContribotAgent extends AIChatAgent<Env, AgentState> {
 		return this.env;
 	}
 
-	defaultState: AgentState = {
+	initialState: AgentState = {
 		userId: "",
 		dashboardState: {
 			currentTab: "overview",
@@ -205,6 +207,7 @@ export class ContribotAgent extends AIChatAgent<Env, AgentState> {
 					model,
 					tools: allTools,
 					toolChoice: "auto", // Allow model to decide when to use tools
+					stopWhen: stepCountIs(5), // Enable multi-step tool execution (e.g., getCurrentIssues → viewIssue)
 					// Type boundary: streamText expects specific tool types, but base class uses ToolSet
 					onFinish: onFinish as unknown as StreamTextOnFinishCallback<
 						typeof allTools
@@ -374,41 +377,58 @@ Remember: Actions like forking, commenting, and creating PRs will ask the user f
 	}
 
 	/**
+	 * Ensure agent is initialized with userId
+	 * Called at the start of every request
+	 */
+	private async ensureInitialized(userId: string): Promise<void> {
+		// The Agents SDK automatically initializes this.state with defaultState
+		// We just need to set the userId if it's not already set
+		console.log(this.state);
+		console.log("Checking state");
+		if (!this.state.userId || this.state.userId === "") {
+			console.log("[Agent] Setting userId:", userId);
+			this.setState({
+				...this.state,
+				userId,
+				createdAt: this.state.createdAt || Date.now(),
+				updatedAt: Date.now(),
+			});
+		}
+
+		// Initialize GitHub client if needed
+		if (!this.apiClient) {
+			await this.initializeGitHubClient();
+			console.log("[Agent] GitHub client initialized");
+		}
+	}
+
+	/**
 	 * Custom fetch handler for non-WebSocket requests
-	 * Handles direct HTTP endpoints like /initialize and /languages
+	 * Handles direct HTTP endpoints like /languages
 	 */
 	async fetch(request: Request): Promise<Response> {
 		const url = new URL(request.url);
 
-		// Handle initialization request
-		if (url.pathname === "/initialize" && request.method === "POST") {
-			try {
-				const data = (await request.json()) as { userId: string };
-				const userId = data.userId;
+		// Extract userId from query parameter (set by index.ts for direct HTTP requests)
+		const userId = url.searchParams.get("userId");
 
-				if (!this.state.userId) {
-					this.state.userId = userId;
-					this.state.createdAt = Date.now();
-					this.state.updatedAt = Date.now();
-					await this.setState(this.state);
-					await this.initializeGitHubClient();
-				}
-
-				return Response.json({ success: true });
-			} catch (error) {
-				return Response.json(
-					{ error: error instanceof Error ? error.message : String(error) },
-					{ status: 500 },
-				);
-			}
+		// For direct HTTP commands, userId is required
+		if (userId) {
+			await this.ensureInitialized(userId);
 		}
 
 		// Handle get languages request
 		if (url.pathname === "/languages" && request.method === "GET") {
+			if (!userId) {
+				console.error("[Agent] No userId provided for /languages endpoint");
+				return Response.json({ error: "userId is required" }, { status: 400 });
+			}
+
 			try {
 				const languages = await this.getUserLanguages();
 				return Response.json({ languages });
 			} catch (error) {
+				console.error("[Agent] Error getting languages:", error);
 				return Response.json(
 					{ error: error instanceof Error ? error.message : String(error) },
 					{ status: 500 },
@@ -416,8 +436,7 @@ Remember: Actions like forking, commenting, and creating PRs will ask the user f
 			}
 		}
 
-		// For all other requests, let the parent AIChatAgent handle it
-		// This includes WebSocket upgrades
+		// For all other requests (including WebSocket upgrades), let the parent AIChatAgent handle it
 		return super.fetch(request);
 	}
 }

@@ -28,9 +28,9 @@ export const Route = createRootRouteWithContext<{
 				content: "width=device-width, initial-scale=1",
 			},
 			...seo({
-				title:
-					"TanStack Start | Type-Safe, Client-First, Full-Stack React Framework",
-				description: `TanStack Start is a type-safe, client-first, full-stack React framework. `,
+				title: "Contribot | AI-Powered Open Source Contribution Platform",
+				description:
+					"Discover and contribute to beginner-friendly open-source projects with AI assistance. Get personalized recommendations, real-time chat support, and automated GitHub actions to streamline your first pull request.",
 			}),
 		],
 		links: [
@@ -72,8 +72,8 @@ function RootComponent() {
 		<RootDocument>
 			<ThemeProvider
 				attribute="class"
-				defaultTheme="system"
-				enableSystem
+				defaultTheme="light"
+				enableSystem={false}
 				disableTransitionOnChange={false}
 			>
 				<Outlet />

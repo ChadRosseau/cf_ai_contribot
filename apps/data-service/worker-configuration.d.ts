@@ -19,10 +19,22 @@ declare namespace Cloudflare {
 }
 interface BaseEnv extends Cloudflare.Env {}
 type StringifyValues<EnvType extends Record<string, unknown>> = {
-	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
+	[Binding in keyof EnvType]: EnvType[Binding] extends string
+		? EnvType[Binding]
+		: string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "CLOUDFLARE_DATABASE_ID" | "CLOUDFLARE_ACCOUNT_ID" | "CLOUDFLARE_D1_TOKEN" | "GITHUB_SCRAPER_TOKEN" | "ENABLE_R2_LOGGING">> {}
+	interface ProcessEnv
+		extends StringifyValues<
+			Pick<
+				Cloudflare.Env,
+				| "CLOUDFLARE_DATABASE_ID"
+				| "CLOUDFLARE_ACCOUNT_ID"
+				| "CLOUDFLARE_D1_TOKEN"
+				| "GITHUB_SCRAPER_TOKEN"
+				| "ENABLE_R2_LOGGING"
+			>
+		> {}
 }
 
 // Begin runtime types

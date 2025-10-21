@@ -11,7 +11,6 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/theme";
 import { authClient } from "@/lib/auth-client";
 import { AccountDialog } from "@/components/auth/account-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -132,11 +131,6 @@ export function NavigationBar() {
 								<div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-primary to-primary/80 transition-all duration-300 group-hover:w-3/4" />
 							</div>
 						))}
-
-						{/* Theme Toggle */}
-						<div className="ml-2 pl-2 border-l border-border/30">
-							<ThemeToggle variant="ghost" align="end" />
-						</div>
 					</div>
 
 					{/* Auth Button - Desktop */}
@@ -173,9 +167,8 @@ export function NavigationBar() {
 						)}
 					</div>
 
-					{/* Mobile Menu Button + Theme Toggle */}
+					{/* Mobile Menu Button */}
 					<div className="lg:hidden flex items-center space-x-2">
-						<ThemeToggle variant="ghost" align="end" />
 						<Sheet open={isOpen} onOpenChange={setIsOpen}>
 							<SheetTrigger asChild>
 								<Button
