@@ -1,10 +1,16 @@
 # Contribot
 
+![Contribot Dashboard](/apps/user-application/public/screenshots/dashboard.png)
+
 An AI-powered platform designed to help new developers discover and contribute to beginner-friendly open-source projects. Contribot combines intelligent issue discovery, personalized recommendations, and conversational AI assistance to streamline the journey from exploration to first pull request.
 
 **Deployed Link:** https://contribot.net
+
 **Setup Instructions:** See [SETUP.md](./SETUP.md)
+
 **Video Demo:** Coming soon
+
+**AI Prompts:** See [PROMPTS.md](./PROMPTS.md)
 
 ## Overview
 
